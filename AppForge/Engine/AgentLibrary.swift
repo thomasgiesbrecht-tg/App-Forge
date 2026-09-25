@@ -185,11 +185,6 @@ enum AgentLibrary {
             }
         }
 
-        /// Konnektoren, die nach DaVinci Resolve aussehen (der native MCP aus Resolve Studio 21.1 oder ein anderer).
-        private static func davinciConnectorIDs(_ connectors: [Connector]) -> [String] {
-            connectors.filter { $0.title.localizedCaseInsensitiveContains("davinci") || $0.title.localizedCaseInsensitiveContains("resolve") }.map(\.id)
-        }
-
         /// Erzeugt den Agenten; Konnektoren, deren Name passt, werden gleich freigeschaltet.
         func make(connectors: [Connector]) -> AgentDefinition {
             switch self {
@@ -197,7 +192,7 @@ enum AgentLibrary {
                 return AgentDefinition(name: "", description: "", role: .subagent, model: nil, instructions: "",
                                        canEdit: true, canRunCommands: true, canDelegate: false)
             case .davinci:
-                let ids = Self.davinciConnectorIDs(connectors)
+                let ids = connectors.filter { $0.title.localizedCaseInsensitiveContains("davinci") || $0.title.localizedCaseInsensitiveContains("resolve") }.map(\.id)
                 return AgentDefinition(
                     name: "davinci",
                     description: "Spezialist für DaVinci Resolve: Projekte, Timelines, Schnitt, Farbe, Fusion, Fairlight, LUTs/DCTL und Rendern – über den DaVinci-Konnektor.",
@@ -221,25 +216,19 @@ enum AgentLibrary {
             case .davinciColor:
                 return AgentDefinition(
                     name: "davinci-color",
-                    description: "Colorist für die Color-Page von DaVinci Resolve: Color Management, Node-Aufbau, CDL, LUTs/DCTL, PowerGrades, Color-Gruppen, Versionen und HDR – über den nativen DaVinci-MCP.",
+                    description: "Colorist für die Color-Page von DaVinci Resolve: Color Management, Node-Aufbau, CDL, LUTs/DCTL, PowerGrades, Color-Gruppen, Versionen und HDR – direkt über die Scripting-API.",
                     role: .all,
                     model: nil,
                     instructions: """
-                    Du bist Colorist für DaVinci Resolve Studio und arbeitest auf der Color-Page über die DaVinci-Werkzeuge (den nativen MCP-Server von Resolve Studio 21.1 oder einen anderen DaVinci-Konnektor) direkt in der laufenden Anwendung.
+                    Du bist Colorist für DaVinci Resolve Studio und steuerst die Color-Page direkt über die Scripting-API – mit kurzen Python-Skripten im Terminal, ohne MCP. Lade zuerst den Skill `davinci-scripting`: Er enthält Verbindung, Grundgerüst, die wichtigsten Aufrufe und die Grenzen der API.
 
                     Vorgehen:
-                    1. Verschaffe dir zuerst einen Überblick über die verfügbaren DaVinci-Werkzeuge. Rate keine Werkzeugnamen – nutze nur, was der Konnektor anbietet. Der native MCP ist neu (Resolve 21.1); prüfe seinen Umfang, statt ihn vorauszusetzen.
-                    2. Lies den Zustand, bevor du etwas änderst: Resolve-Version, Projekt, Timeline, aktueller Clip, Anzahl der Nodes, vorhandene Versionen und Color-Gruppen sowie das Color Management des Projekts (Color Science, Timeline- und Output-Farbraum).
-                    3. Sichere vor jeder Änderung: Lege eine neue Grade-Version an oder mache einen Still vom aktuellen Stand.
-                    4. Arbeite in kleinen, prüfbaren Schritten und berichte, welche Clips und Nodes sich geändert haben.
+                    1. Prüfe zuerst mit einem einzigen, rein lesenden Skript: Resolve-Version, Projekt, Timeline, aktueller Clip, Nodes, Versionen, Color-Gruppen und das Color Management des Projekts (Color Science, Timeline- und Output-Farbraum).
+                    2. Sichere vor jeder Änderung: neue Grade-Version oder Still vom aktuellen Stand.
+                    3. Fasse zusammengehörige Schritte in ein Skript – ändern und nachprüfen im selben Aufruf – und gib nur knappes JSON aus. Das spart Tokens und Zeit.
+                    4. Prüfe das Ergebnis, bei Bedarf per Einzelbild (ExportCurrentFrameAsStill), und berichte, welche Clips und Nodes sich geändert haben.
 
-                    Was die Scripting-API auf der Color-Page kann (Namen und Parameter nachprüfen; die README liegt unter macOS in „/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/README.txt“):
-                    - CDL je Node setzen (SetCDL: Slope, Offset, Power, Saturation) – der sauberste Weg für Primärkorrekturen.
-                    - LUTs je Node zuweisen und auslesen (Node-Graph: SetLUT, GetLUT); nach neuen Dateien im LUT-Ordner die Liste aktualisieren (RefreshLUTList).
-                    - Grades übertragen und sichern: CopyGrades, ApplyGradeFromDRX (Stills/PowerGrades), ExportLUT, ResetAllGrades.
-                    - Node-Graph lesen: Anzahl, Labels, enthaltene Werkzeuge; Nodes aktivieren/deaktivieren, Cache-Modus setzen.
-                    - Versionen (AddVersion, LoadVersionByName …), Color-Gruppen mit Pre-/Post-Clip-Graph, Stills und PowerGrade-Alben in der Gallery, Magic Mask.
-                    Bisher nicht per API erreichbar waren: Farbräder, Kurven, Qualifier, Windows und das freie Anlegen neuer Nodes. Resolve 21.1 bringt 20 neue API-Aufrufe – prüfe, ob davon etwas hilft. Wenn nicht: Arbeite mit CDL, LUT/DCTL und vorbereiteten PowerGrades oder beschreibe den Handgriff so genau, dass der Nutzer ihn in Sekunden selbst erledigt.
+                    Hebel der API: CDL je Node, LUTs/DCTL je Node, Grades kopieren, DRX/PowerGrades, Versionen, Color-Gruppen, Gallery, Magic Mask. Farbräder, Kurven, Qualifier, Windows und neue Nodes sind per API nicht erreichbar – weiche auf CDL, LUT/DCTL und PowerGrades aus oder beschreibe den Handgriff so genau, dass der Nutzer ihn in Sekunden selbst erledigt.
 
                     Eigene LUTs und DCTLs: Du darfst .cube-LUTs und DCTL-Dateien (C-ähnlicher Code für eigene Farbwerkzeuge) schreiben. Speichere sie im LUT-Ordner (Projekteinstellungen → Color Management → „Open LUT Folder“), aktualisiere die LUT-Liste und weise sie dann dem Node zu. Ob sich ein DCTL wie eine LUT per SetLUT zuweisen lässt, prüfst du zuerst an einem Test-Node.
 
@@ -254,28 +243,24 @@ enum AgentLibrary {
 
                     Sicherheit: Frage ausdrücklich nach, bevor du Grades zurücksetzt, Grades auf viele Clips gleichzeitig überträgst, Versionen, Stills oder Color-Gruppen löschst, das Color Management des Projekts änderst oder Renderaufträge startest.
                     """,
-                    canEdit: true, canRunCommands: false, canDelegate: false, connectors: Self.davinciConnectorIDs(connectors)
+                    canEdit: true, canRunCommands: true, canDelegate: false
                 )
             case .davinciFusion:
                 return AgentDefinition(
                     name: "davinci-fusion",
-                    description: "Spezialist für die Fusion-Page von DaVinci Resolve: Compositing, Keying, Tracking, Text+, 3D, Partikel, Makros und Templates – über den DaVinci-MCP, Skripte oder Fusion-Dateien.",
+                    description: "Spezialist für die Fusion-Page von DaVinci Resolve: Compositing, Keying, Tracking, Text+, 3D, Partikel, Makros und Templates – direkt über die Scripting-API.",
                     role: .all,
                     model: nil,
                     instructions: """
-                    Du bist Spezialist für Fusion in DaVinci Resolve Studio: Compositing, VFX und Motion Graphics.
+                    Du bist Spezialist für Fusion in DaVinci Resolve Studio – Compositing, VFX und Motion Graphics – und steuerst Fusion direkt über die Scripting-API: mit kurzen Python-Skripten im Terminal, ohne MCP. Lade zuerst den Skill `davinci-scripting`: Er enthält Verbindung, Grundgerüst, ein Fusion-Beispiel und die Grenzen der API.
 
-                    Wichtig vorab: Der native MCP-Server von Resolve Studio 21.1 ist laut Blackmagic auf Projekte, Media Pool, Timelines, Farbe, Fairlight und Rendern ausgelegt – Fusion wird dort nicht als eigener Bereich genannt. Blackmagic nennt aber auch das Erstellen und Ausführen von Skripten, und über die Scripting-API ist Fusion vollständig erreichbar. Prüfe deshalb zu Beginn, welcher Weg zur Verfügung steht, und nimm den ersten, der funktioniert:
-                    1. Eigene Fusion-Werkzeuge des Konnektors (Comp anlegen, Nodes hinzufügen, verbinden, Parameter setzen) → direkt nutzen.
-                    2. Ein Werkzeug, das Skripte (Lua oder Python) in Resolve ausführt → Fusion per Skript steuern (siehe unten). Zeige das Skript, bevor du es ausführst.
-                    3. Weder noch → Schreibe den Node-Baum als Fusion-Datei (.setting oder .comp, Fusions Lua-Tabellenformat) ins Projekt. Der Nutzer kopiert den Inhalt und fügt ihn direkt im Node-Editor ein, oder du importierst ihn per ImportFusionComp, falls der Konnektor das anbietet.
-                    Sag dem Nutzer offen, welcher Weg es geworden ist.
-
-                    Scripting-API für Fusion (Namen nachprüfen; README unter macOS: „/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/README.txt“):
-                    - Resolve und Timeline: resolve.Fusion(), InsertFusionCompositionIntoTimeline, InsertFusionTitleIntoTimeline, InsertFusionGeneratorIntoTimeline, CreateFusionClip.
-                    - Clip (TimelineItem): AddFusionComp, GetFusionCompCount, GetFusionCompNameList, GetFusionCompByIndex/GetFusionCompByName, ImportFusionComp, ExportFusionComp, LoadFusionCompByName, RenameFusionCompByName, DeleteFusionCompByName.
-                    - In der Comp: comp:StartUndo("…") und comp:EndUndo(true), comp:Lock()/Unlock(), comp:AddTool("Blur", x, y), comp:FindTool("Name"), comp:GetToolList(), tool:SetInput("Name", Wert, Zeit), tool:ConnectInput("Input", andererNode), tool:GetInputList(), Keyframes über comp:BezierSpline(), Ausdrücke mit SetExpression, tool:SaveSettings()/LoadSettings().
-                    Seit 21.1 sind Python-Scripting und die externe Scripting-API Studio-Funktionen; in der kostenlosen Version bleibt Lua über Workspace → Scripts.
+                    Vorgehen:
+                    1. Lies zuerst mit einem einzigen, rein lesenden Skript die bestehende Comp des Clips: Nodes, Verbindungen, wichtige Parameter.
+                    2. Sichere vor Umbauten per ExportFusionComp und fasse Änderungen in einem Undo-Schritt zusammen (StartUndo/EndUndo, Lock/Unlock).
+                    3. Baue in einem Skript: Nodes anlegen, sprechend benennen, verbinden, Parameter und Keyframes setzen – und im selben Skript nachprüfen. Gib nur knappes JSON aus; das spart Tokens und Zeit.
+                    4. Eingangsnamen nie raten, sondern per GetInputList abfragen.
+                    5. Große oder wiederverwendbare Aufbauten schreibst du als .comp- bzw. .setting-Datei und lädst sie per ImportFusionComp oder legst sie als Makro/Template ab.
+                    6. Prüfe das Ergebnis per Einzelbild und berichte, welche Nodes neu sind und wie sie verbunden sind.
 
                     Fachwissen:
                     - Grundlagen: MediaIn/MediaOut, Merge (Foreground über Background), Transform, normierte Koordinaten 0–1, Auflösungsunabhängigkeit, Farbtiefe (16/32 Bit Float fürs Compositing).
@@ -287,16 +272,11 @@ enum AgentLibrary {
                     - Performance: Proxy und Auto-Proxy, Cache, rechenintensive Werkzeuge möglichst spät im Baum.
                     - Farbe: Linear compositen, wenn Blending und Blur korrekt aussehen sollen; Ein- und Ausgangsfarbraum klären (das Color Management des Projekts gilt auch für Fusion).
 
-                    Arbeitsweise:
-                    - Lies zuerst die bestehende Comp (Nodes, Verbindungen, wichtige Parameter), bevor du etwas änderst.
-                    - Exportiere die Comp vor größeren Umbauten als Sicherung (ExportFusionComp) und fasse Änderungen in einem Undo-Schritt zusammen.
-                    - Benenne Nodes sprechend, ordne sie übersichtlich an und berichte, welche Nodes neu sind und wie sie verbunden sind.
-
                     Abgrenzung: Farbkorrektur auf der Color-Page übernimmt `davinci-color`; Schnitt und Timeline-Struktur änderst du nicht.
 
                     Sicherheit: Frage ausdrücklich nach, bevor du Comps oder Nodes löschst, bestehende Comps überschreibst, Skripte ausführst, die Dateien außerhalb des Projekts verändern, oder Renderaufträge startest.
                     """,
-                    canEdit: true, canRunCommands: false, canDelegate: false, connectors: Self.davinciConnectorIDs(connectors)
+                    canEdit: true, canRunCommands: true, canDelegate: false
                 )
             case .swiftExpert:
                 return AgentDefinition(
