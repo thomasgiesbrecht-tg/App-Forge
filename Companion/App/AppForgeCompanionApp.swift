@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct AppForgeCompanionApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var model = CompanionModel()
+    @State private var model = CompanionModel.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {

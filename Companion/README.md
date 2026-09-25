@@ -56,3 +56,19 @@ Den Mac am Strom und aufgeklappt lassen. „Mac wach halten“ verhindert den Ru
 Das iPhone spricht nie direkt mit der Engine, sondern immer mit der Companion-Bridge in AppForge.
 Dadurch gelten Zentrale, Budgets und Berechtigungsmodus auch unterwegs.
 Nachrichten vom iPhone bekommen einen Hinweis für den Agenten, dass niemand am Mac sitzt.
+
+## Apple Watch
+Die Watch-App steckt in der iPhone-App und wird mit ihr gebaut (`scripts/iphone-installieren.sh`).
+- **Übersicht:** laufende Aufträge, offene Freigaben, heutige Kosten (Euro und Cent), Verbindungsstatus.
+- **Freigaben:** „Erlauben“ oder „Nein“ direkt am Handgelenk; neue Freigaben tippen kurz an.
+- **Aufträge:** Fortschritt, aktuelle Tätigkeit, Kosten.
+- **Idee notieren:** App wählen, einsprechen – kommt auch an, wenn das iPhone gerade nicht erreichbar ist.
+- **Komplikationen:** rund, eckig, rechteckig und als Textzeile fürs Zifferblatt.
+
+Die Uhr spricht nie direkt mit dem Mac (watchOS erlaubt das nicht), sondern über das iPhone per WatchConnectivity.
+Die iPhone-App muss dafür nicht geöffnet sein – die Uhr weckt sie im Hintergrund.
+
+Einmalig für die echte Uhr: Auf der Watch unter Einstellungen → Datenschutz & Sicherheit → **Entwicklermodus** einschalten
+(erscheint, nachdem die Uhr einmal mit Xcode verbunden war: iPhone per Kabel am Mac, Xcode → Window → Devices and Simulators).
+Danach `scripts/iphone-installieren.sh` erneut ausführen – so kommt die Uhr ins Entwicklerprofil. Installiert wird die
+Watch-App dann automatisch oder in der Watch-App des iPhones unter „Verfügbare Apps“.

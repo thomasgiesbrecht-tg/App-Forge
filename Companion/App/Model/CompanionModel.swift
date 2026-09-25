@@ -9,6 +9,9 @@ import WidgetKit
 @MainActor
 @Observable
 final class CompanionModel {
+    /// Ein einziges Modell für App, Mitteilungen und Apple Watch – auch wenn die App nur im Hintergrund geweckt wird.
+    static let shared = CompanionModel()
+
     enum Connection: Equatable {
         case unpaired
         case searching
@@ -231,6 +234,7 @@ final class CompanionModel {
             )
             guard case .welcome(let macName, _) = payload else { throw ModelError.unexpected }
             connection = .connected(macName: macName)
+            WatchBridge.shared.publish(from: self)
             attempt = 0
             lastConnected = .now
             SharedStore.defaults.set(lastConnected, forKey: "lastConnected")
@@ -251,6 +255,7 @@ final class CompanionModel {
         pending = [:]
         guard pairing != nil else { connection = .unpaired; return }
         connection = .offline(reason: reason)
+        WatchBridge.shared.publish(from: self)
         scheduleRetry()
     }
 
@@ -306,10 +311,12 @@ final class CompanionModel {
             self.snapshot = snapshot
             SharedStore.saveSnapshot(snapshot)
             if SharedStore.eurPerUsd != snapshot.eurPerUsd { SharedStore.eurPerUsd = snapshot.eurPerUsd }
+            WatchBridge.shared.publish(from: self)
         case .projects(let projects):
             self.projects = projects
             SharedStore.saveProjects(projects)
             WidgetCenter.shared.reloadAllTimelines()
+            WatchBridge.shared.publish(from: self)
         case .ideas(let projectID, let list):
             ideas[projectID] = list
             SharedStore.saveIdeas(ideas)

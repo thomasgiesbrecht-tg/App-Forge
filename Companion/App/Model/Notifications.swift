@@ -10,6 +10,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
+        // Die Uhr kann die App im Hintergrund wecken – das Modell muss dann ohne Fenster bereitstehen.
+        Self.model = CompanionModel.shared
+        WatchBridge.shared.activate()
         let approve = UNNotificationAction(identifier: "APPROVE", title: "Freigeben", options: [.authenticationRequired])
         let always = UNNotificationAction(identifier: "ALWAYS", title: "Immer erlauben", options: [.authenticationRequired])
         let reject = UNNotificationAction(identifier: "REJECT", title: "Ablehnen", options: [.authenticationRequired, .destructive])
