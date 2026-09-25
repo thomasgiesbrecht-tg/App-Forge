@@ -47,7 +47,7 @@ enum ActivityDigest {
 
     // MARK: Hilfen
 
-    private static func describe(_ part: Part) -> String {
+    static func describe(_ part: Part) -> String {
         let tool = part.tool ?? ""
         let file = part.state?.input?["filePath"]?.stringValue.map { ($0 as NSString).lastPathComponent }
         let title = part.state?.title ?? ""

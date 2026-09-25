@@ -11,6 +11,7 @@ struct InspectorView: View {
             HStack(spacing: 2) {
                 tab(.simulator, "Simulator", "iphone.gen3")
                 tab(.changes, "Änderungen", "plusminus")
+                tab(.ideas, "Ideen", "lightbulb")
             }
             .padding(3)
             .glass(cornerRadius: 14, tintOpacity: 0.3, shadow: false)
@@ -22,6 +23,7 @@ struct InspectorView: View {
                 switch store.inspectorTab {
                 case .simulator: SimulatorPanel()
                 case .changes: ChangesPanel()
+                case .ideas: IdeasPanel()
                 }
             }
             .transition(.opacity.combined(with: .scale(scale: 0.98)))

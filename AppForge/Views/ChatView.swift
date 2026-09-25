@@ -277,6 +277,7 @@ private struct InspectorToggles: View {
                             .contentTransition(.numericText())
                     }
                 }
+            toggle(.ideas, symbol: "lightbulb", help: "Ideen zu dieser App")
         }
         .animation(Theme.Motion.bouncy, value: store.currentChanges.count)
     }

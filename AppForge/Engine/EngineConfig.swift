@@ -108,10 +108,15 @@ enum EngineConfig {
     }
 
     /// Die Zentrale ist ein eigener, versteckter Agent ohne Werkzeuge.
+    /// Der Ideen-Agent darf den Code lesen, aber nichts ändern.
     private static func installDispatcherAgent() throws {
-        guard let source = Bundle.main.url(forResource: "dispatcher-agent", withExtension: "md") else { return }
         try FileManager.default.createDirectory(at: AgentLibrary.directory, withIntermediateDirectories: true)
-        try replaceItem(at: AgentLibrary.directory.appending(path: "dispatcher.md"), with: source)
+        if let source = Bundle.main.url(forResource: "dispatcher-agent", withExtension: "md") {
+            try replaceItem(at: AgentLibrary.directory.appending(path: "dispatcher.md"), with: source)
+        }
+        if let source = Bundle.main.url(forResource: "ideen-agent", withExtension: "md") {
+            try replaceItem(at: AgentLibrary.directory.appending(path: "\(IdeaStore.agentName).md"), with: source)
+        }
     }
 
     private static func replaceItem(at destination: URL, with source: URL) throws {
