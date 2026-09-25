@@ -51,8 +51,10 @@ final class SpeechRecorder {
         level = 0
     }
 
-    private static func authorize() async -> Bool {
-        let speech = await withCheckedContinuation { continuation in
+    /// `nonisolated`: iOS meldet die Erlaubnis auf einem Hintergrund-Thread. Wäre der Rückruf an den Main Actor
+    /// gebunden, beendet Swift 6 die App an dieser Stelle (das war der Absturz beim Einsprechen).
+    nonisolated private static func authorize() async -> Bool {
+        let speech = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0 == .authorized) }
         }
         guard speech else { return false }

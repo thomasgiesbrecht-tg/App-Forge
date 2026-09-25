@@ -47,25 +47,38 @@ final class WatchModel: NSObject {
         let session = WCSession.default
         if session.isReachable {
             busy = true
-            session.sendMessage([WatchCoding.actionKey: data], replyHandler: { reply in
-                let ok = reply["ok"] as? Bool ?? false
+            Self.deliver(data) { [weak self] ok in
                 Task { @MainActor in
+                    guard let self else { return }
                     self.busy = false
-                    if !ok, case .reply = action { self.message = "Der Mac war nicht erreichbar." }
+                    switch ok {
+                    case .none:
+                        if fallback { WCSession.default.transferUserInfo([WatchCoding.actionKey: data]) }
+                        else if !silent { self.message = "iPhone nicht erreichbar." }
+                    case .some(false):
+                        if case .reply = action { self.message = "Der Mac war nicht erreichbar." }
+                    case .some(true):
+                        break
+                    }
                 }
-            }, errorHandler: { _ in
-                Task { @MainActor in
-                    self.busy = false
-                    if fallback { WCSession.default.transferUserInfo([WatchCoding.actionKey: data]) }
-                    else if !silent { self.message = "iPhone nicht erreichbar." }
-                }
-            })
+            }
         } else if fallback {
             session.transferUserInfo([WatchCoding.actionKey: data])
             message = "Wird gesendet, sobald das iPhone erreichbar ist."
         } else if !silent {
             message = "iPhone nicht erreichbar."
         }
+    }
+
+    /// `nonisolated`: WatchConnectivity ruft Antwort und Fehler auf einem Hintergrund-Thread auf.
+    /// Rückrufe, die im Main Actor entstehen, würden dort den Absturz auslösen.
+    /// `ok`: true/false = Antwort des iPhones, nil = iPhone nicht erreichbar.
+    nonisolated private static func deliver(_ data: Data, done: @escaping @Sendable (Bool?) -> Void) {
+        WCSession.default.sendMessage([WatchCoding.actionKey: data], replyHandler: { reply in
+            done(reply["ok"] as? Bool ?? false)
+        }, errorHandler: { _ in
+            done(nil)
+        })
     }
 
     fileprivate func apply(_ new: WatchState, haptic: Bool = true) {
