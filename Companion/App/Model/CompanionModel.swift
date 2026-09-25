@@ -84,6 +84,10 @@ final class CompanionModel {
     }()
 
     init() {
+        // Eingebaute Kopplung hat Vorrang: Nach einem neuen Build mit neuem Mac-Schlüssel gilt sofort der neue.
+        if let builtIn = BuiltInPairing.load(), builtIn != Keychain.loadPairing() {
+            Keychain.savePairing(builtIn)
+        }
         pairing = Keychain.loadPairing()
         if pairing != nil { connection = .offline(reason: nil) }
         NotificationCenter.default.addObserver(forName: .pendingIdeasChanged, object: nil, queue: .main) { [weak self] _ in

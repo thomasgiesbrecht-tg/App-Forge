@@ -12,8 +12,11 @@ final class LiveActivityManager {
         let key = Self.key(for: target)
 
         // Gleiches Ziel (z. B. weitere Nachricht im selben Chat): alte Aktivität beenden.
-        for activity in Activity<TaskActivityAttributes>.activities where activity.attributes.targetKey == key {
-            Task { await activity.end(nil, dismissalPolicy: .immediate) }
+        // Die Aktivitäten erst in der Aufgabe selbst holen – so wird kein Objekt zwischen Isolationsbereichen weitergereicht.
+        Task {
+            for activity in Activity<TaskActivityAttributes>.activities where activity.attributes.targetKey == key {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
         }
 
         let link: URL = switch target {
@@ -32,7 +35,9 @@ final class LiveActivityManager {
                 content: ActivityContent(state: state, staleDate: .now.addingTimeInterval(60 * 30)),
                 pushType: .token
             )
+            let id = activity.id
             Task {
+                guard let activity = Activity<TaskActivityAttributes>.activities.first(where: { $0.id == id }) else { return }
                 for await data in activity.pushTokenUpdates {
                     onToken(data.map { String(format: "%02x", $0) }.joined())
                 }

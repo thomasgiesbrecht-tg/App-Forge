@@ -2,3 +2,6 @@ build/
 .DS_Store
 xcuserdata/
 *.xcuserstate
+
+# Eingebaute Kopplung der iPhone-App (enthält den Schlüssel des Macs)
+Companion/App/kopplung.txt

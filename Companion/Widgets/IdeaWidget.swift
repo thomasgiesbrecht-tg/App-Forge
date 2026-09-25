@@ -23,8 +23,8 @@ struct IdeaEntry: TimelineEntry {
 struct IdeaProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> IdeaEntry {
         IdeaEntry(date: .now, projects: [
-            CompanionProject(id: "a", name: "Meine App", folderName: "", iconPNG: nil, openIdeas: 3, isMac: false),
-            CompanionProject(id: "b", name: "Zweite App", folderName: "", iconPNG: nil, openIdeas: 0, isMac: false),
+            CompanionProject(id: "a", name: "Meine App", folderName: "", iconPNG: nil, openIdeas: 3, spentUSD: 0, isMac: false),
+            CompanionProject(id: "b", name: "Zweite App", folderName: "", iconPNG: nil, openIdeas: 0, spentUSD: 0, isMac: false),
         ])
     }
 
