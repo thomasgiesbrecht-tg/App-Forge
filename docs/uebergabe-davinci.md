@@ -68,7 +68,7 @@ Getestet auf dem Mac mit DaVinci Resolve Studio **21.1.0.14**, Projekt „New Pr
 4. **Freigabe-Sicherung:** OpenCode schickt in `patterns` den **ganzen** Befehl samt Heredoc (im Test 57 Zeilen) und zusätzlich `metadata.command`. AppForge prüft jetzt beides. Neu als riskant: `SetSetting(` (Projekteinstellungen ändern).
    - Bekannte Lücke: Schreibt ein Agent ein Skript erst in eine Datei und startet es mit `python3 datei.py`, sieht die Prüfung den Inhalt nicht. Der Skill verlangt Heredocs; technisch verhindert wird es nicht.
 5. **Praxistest** (über eine Test-Engine mit denselben Agentendateien):
-   - `davinci-color` „Projekt/Timeline/Color Management prüfen“: korrekt, ein Skript, 0,28 ct, 18 s.
+   - `davinci-color` „Projekt/Timeline/Color Management prüfen“: korrekt, ein Skript, ca. 0,25 Cent (Euro), 18 s.
    - Lösch-Auftrag: Agent startete selbst mit `DAVINCI_FREIGABE=1`, AppForge-Regel erkannte ihn als riskant → abgelehnt, nichts gelöscht.
-   - `davinci-fusion` „Blur zwischen MediaIn und MediaOut“: gebaut und per Comp-Export und Einzelbild geprüft, 0,87 ct, 66 s. Zwei Zwischenschritte scheiterten an der Verbindungsabfrage (jetzt im Skill beschrieben).
+   - `davinci-fusion` „Blur zwischen MediaIn und MediaOut“: gebaut und per Comp-Export und Einzelbild geprüft, ca. 0,77 Cent (Euro), 66 s. Zwei Zwischenschritte scheiterten an der Verbindungsabfrage (jetzt im Skill beschrieben).
    - Die Freigabe-Leiste in der AppForge-Oberfläche selbst wurde nicht angeklickt – das Verhalten entspricht aber der geprüften Regel.
