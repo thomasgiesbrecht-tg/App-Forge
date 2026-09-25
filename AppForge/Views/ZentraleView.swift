@@ -535,7 +535,17 @@ private struct ProposalCard: View {
     private var launched: Bool { dispatcher.isLaunched(message.id) }
 
     private var rules: [RuleCheck.Result] {
-        RuleCheck.check(proposal, entries: ModelCatalog.entries(from: store.providers), budget: dispatcher.budgetUSD ?? proposal.budgetUSD)
+        RuleCheck.check(proposal, entries: ModelCatalog.entries(from: store.providers), budget: dispatcher.budgetUSD ?? proposal.budgetUSD,
+                        estimate: estimate?.expected)
+    }
+
+    /// Gerechnete Kosteneinschätzung für die aktuelle Auswahl an Agenten und Modellen (ohne KI, kostet nichts).
+    private var estimate: CostEstimate? {
+        CostEstimator.total(proposal, entries: ModelCatalog.entries(from: store.providers), missions: dispatcher.missions)
+    }
+
+    private func estimate(for task: Proposal.TaskPlan) -> CostEstimate? {
+        CostEstimator.estimate(task, entries: ModelCatalog.entries(from: store.providers), missions: dispatcher.missions)
     }
 
     /// Nachttarif nur anbieten, wenn ein Modell davon profitiert und er gerade nicht ohnehin gilt.
@@ -557,7 +567,7 @@ private struct ProposalCard: View {
                         .foregroundStyle(Theme.textTertiary)
                 }
                 Spacer()
-                if let cost = proposal.estimatedCostUSD {
+                if let cost = estimate?.expected ?? proposal.estimatedCostUSD {
                     Text("≈ " + Money.format(cost))
                         .font(Theme.Fonts.mono(12, .medium))
                         .foregroundStyle(overBudget ? Theme.red : Theme.textSecondary)
@@ -579,7 +589,7 @@ private struct ProposalCard: View {
             VStack(spacing: 6) {
                 ForEach(proposal.tasks) { task in
                     TaskRow(
-                        task: task, allTasks: proposal.tasks, isExpanded: expanded == task.id, locked: launched,
+                        task: task, allTasks: proposal.tasks, estimate: estimate(for: task), isExpanded: expanded == task.id, locked: launched,
                         promptDraft: $promptDraft,
                         onToggle: {
                             withAnimation(Theme.Motion.spring) {
@@ -598,6 +608,10 @@ private struct ProposalCard: View {
                     .font(Theme.Fonts.sans(11.5, .light))
                     .foregroundStyle(Theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let estimate {
+                CostSummary(estimate: estimate, zentrale: proposal.estimatedCostUSD, budget: dispatcher.budgetUSD ?? proposal.budgetUSD)
             }
 
             RuleSummary(results: rules)
@@ -657,7 +671,8 @@ private struct ProposalCard: View {
                             launching = false
                         }
                     } label: {
-                        Label(launching ? "Startet …" : (proposal.tasks.count > 1 ? "Alle starten" : "Auftrag starten"), systemImage: "play.fill")
+                        Label(launching ? "Startet …" : (proposal.tasks.count > 1 ? "Alle starten" : "Auftrag starten")
+                              + (estimate.map { " · ≈ " + Money.format($0.expected) } ?? ""), systemImage: "play.fill")
                     }
                     .buttonStyle(PillButtonStyle(prominent: true))
                     .disabled(launching)
@@ -686,7 +701,7 @@ private struct ProposalCard: View {
     }
 
     private var overBudget: Bool {
-        guard let cost = proposal.estimatedCostUSD, let budget = dispatcher.budgetUSD ?? proposal.budgetUSD else { return false }
+        guard let cost = estimate?.expected ?? proposal.estimatedCostUSD, let budget = dispatcher.budgetUSD ?? proposal.budgetUSD else { return false }
         return cost > budget
     }
 
@@ -694,6 +709,35 @@ private struct ProposalCard: View {
         let budget = (dispatcher.budgetUSD ?? proposal.budgetUSD).map { "Budget " + Money.format($0) } ?? "ohne Budget"
         let time = (dispatcher.timeLimitMinutes ?? proposal.timeLimitMinutes).map { "\(Int($0)) min je Agent" } ?? "ohne Zeitlimit"
         return "\(budget) · \(time)"
+    }
+}
+
+/// Kosteneinschätzung vor dem Start: erwartete Kosten mit Spanne, Grundlage und Vergleich mit der Zentrale.
+private struct CostSummary: View {
+    let estimate: CostEstimate
+    let zentrale: Double?
+    let budget: Double?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: "eurosign.circle")
+                Text("Kosteneinschätzung \(estimate.label)")
+                    .foregroundStyle(budget.map { estimate.expected > $0 } == true ? Theme.red : Theme.textSecondary)
+            }
+            Text(details)
+                .foregroundStyle(Theme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(Theme.Fonts.sans(11))
+    }
+
+    private var details: String {
+        var parts = [estimate.basis]
+        if estimate.escalation > 0.00001 { parts.append("inkl. \(Money.format(estimate.escalation)) für eine mögliche Übergabe") }
+        if let zentrale { parts.append("Zentrale schätzte \(Money.format(zentrale))") }
+        if let budget, estimate.high > budget { parts.append("im ungünstigen Fall über dem Budget von \(Money.format(budget)) – dann wird geordnet gestoppt") }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -729,6 +773,7 @@ private struct TaskRow: View {
     @Environment(AppStore.self) private var store
     let task: Proposal.TaskPlan
     let allTasks: [Proposal.TaskPlan]
+    let estimate: CostEstimate?
     let isExpanded: Bool
     let locked: Bool
     @Binding var promptDraft: String
@@ -768,10 +813,12 @@ private struct TaskRow: View {
                     .lineLimit(1)
                 }
                 Spacer()
-                if let cost = task.estimatedCostUSD {
-                    Text(Money.format(cost))
+                if let cost = estimate?.expected ?? task.estimatedCostUSD {
+                    Text("≈ " + Money.format(cost))
                         .font(Theme.Fonts.mono(11))
                         .foregroundStyle(Theme.textTertiary)
+                        .help(estimate.map { "\($0.label)\n\($0.basis)" + (task.estimatedCostUSD.map { "\nSchätzung der Zentrale: " + Money.format($0) } ?? "") } ?? "Schätzung der Zentrale")
+                        .contentTransition(.numericText())
                 }
                 Button(action: onToggle) {
                     Image(systemName: "chevron.down")

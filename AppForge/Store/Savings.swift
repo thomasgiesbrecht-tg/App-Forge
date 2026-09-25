@@ -111,7 +111,7 @@ enum RuleCheck {
         var id: String { title }
     }
 
-    static func check(_ proposal: Proposal, entries: [ModelCatalog.Entry], budget: Double?) -> [Result] {
+    static func check(_ proposal: Proposal, entries: [ModelCatalog.Entry], budget: Double?, estimate: Double? = nil) -> [Result] {
         guard proposal.dispatch, !proposal.tasks.isEmpty else { return [] }
         let byLabel = Dictionary(entries.map { ($0.selection.label, $0) }, uniquingKeysWith: { a, _ in a })
         var results: [Result] = []
@@ -138,7 +138,7 @@ enum RuleCheck {
                                     : "Teures Startmodell ohne Stufe: " + expensive.map(\.title).joined(separator: ", ")))
         }
 
-        if let budget, let cost = proposal.estimatedCostUSD {
+        if let budget, let cost = estimate ?? proposal.estimatedCostUSD {
             let ok = cost <= budget * 0.7
             results.append(Result(title: "Budget", ok: ok,
                                   detail: "Schätzung \(Money.format(cost)) von \(Money.format(budget)) (Regel: höchstens 70 %)."))

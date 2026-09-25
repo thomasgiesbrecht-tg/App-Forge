@@ -657,6 +657,13 @@ final class Dispatcher {
         guard autoStart, !launched.contains(messageID),
               let message = messages.first(where: { $0.id == messageID }),
               let proposal = proposal(for: message), proposal.dispatch else { return }
+        // Direkt starten nur, wenn die gerechnete Einschätzung ins Budget passt – sonst entscheidest du.
+        if let budget = budgetUSD ?? proposal.budgetUSD,
+           let estimate = CostEstimator.total(proposal, entries: ModelCatalog.entries(from: store?.providers), missions: missions),
+           estimate.expected > budget {
+            log(proposal.title ?? "Auftrag", "wartet auf dich – Schätzung \(Money.format(estimate.expected)) über Budget \(Money.format(budget))", .attention)
+            return
+        }
         Task { await launch(proposal, from: messageID) }
     }
 
