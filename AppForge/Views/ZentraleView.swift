@@ -14,9 +14,20 @@ struct ZentraleView: View {
             header
             if liveMode {
                 // Links das Gespräch mit der Zentrale, rechts die Live-Ansicht aller Agenten
+                // Ist ein Agent angeklickt, stehen links seine Gedanken statt des Gesprächs.
                 HStack(spacing: 0) {
-                    conversation(showsBoard: false)
-                        .frame(width: 440)
+                    Group {
+                        if let focus = dispatcher.focus {
+                            AgentThoughtsView(focus: focus)
+                                .id(focus.nodeID)
+                                .transition(.opacity.combined(with: .move(edge: .leading)))
+                        } else {
+                            conversation(showsBoard: false)
+                                .transition(.opacity)
+                        }
+                    }
+                    .frame(width: 440)
+                    .animation(Theme.Motion.spring, value: dispatcher.focus?.nodeID)
                     Rectangle().fill(Theme.line).frame(width: 1)
                     AgentLiveView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -127,7 +138,7 @@ struct ZentraleView: View {
             }
             Spacer()
             ViewSwitch(liveMode: $liveMode)
-            Stat(label: "heute", value: String(format: "$%.3f", dispatcher.spentToday))
+            Stat(label: "heute", value: Money.format(dispatcher.spentToday))
             Stat(label: "laufend", value: "\(dispatcher.runningMissions.count)")
             RouterModelPill()
         }
@@ -204,7 +215,7 @@ private struct RouterModelPill: View {
                 Button {
                     dispatcher.routerModel = entry.selection
                 } label: {
-                    Text("\(entry.model.name) · \(entry.providerName) · $\(String(format: "%.2f", entry.inputPrice))")
+                    Text("\(entry.model.name) · \(entry.providerName) · \(Money.format(entry.inputPrice))/Mio.")
                 }
             }
         } label: {
@@ -349,7 +360,7 @@ private struct MissionCard: View {
                             .foregroundStyle(color)
                             .contentTransition(.opacity)
                     }
-                    Text("\(mission.model) · \(mission.agent) · \(mission.projectName)")
+                    Text((mission.escalatedModel.map { "\(mission.model) → \($0)" } ?? mission.model) + " · \(mission.agent) · \(mission.projectName)")
                         .font(Theme.Fonts.mono(10))
                         .foregroundStyle(Theme.textTertiary)
                         .lineLimit(1)
@@ -364,7 +375,7 @@ private struct MissionCard: View {
                     HStack(spacing: 18) {
                         Meter(
                             label: "Kosten",
-                            value: String(format: "$%.3f", mission.spentUSD) + (mission.budgetUSD.map { String(format: " / $%.2f", $0) } ?? ""),
+                            value: Money.format(mission.spentUSD) + (mission.budgetUSD.map { " / " + Money.format($0) } ?? ""),
                             fraction: mission.budgetFraction
                         )
                         Meter(
@@ -373,7 +384,11 @@ private struct MissionCard: View {
                             fraction: mission.timeFraction
                         )
                         if let estimate = mission.estimatedCostUSD {
-                            Meter(label: "Schätzung", value: String(format: "$%.2f", estimate), fraction: nil)
+                            Meter(label: "Schätzung", value: Money.format(estimate), fraction: nil)
+                        }
+                        if let rate = mission.cacheRate {
+                            Meter(label: "Zwischenspeicher", value: "\(Int(rate * 100)) %", fraction: nil)
+                                .help("Anteil der Eingabe, die der Anbieter aus dem Zwischenspeicher gelesen hat – je höher, desto günstiger.")
                         }
                     }
                 }
@@ -499,7 +514,7 @@ private struct DispatchMessageView: View {
 
     @ViewBuilder private var footer: some View {
         if let cost = message.info.cost, message.info.time.completed != nil {
-            Text("\(message.info.modelLabel ?? "") · \(String(format: "$%.4f", cost))")
+            Text("\(message.info.modelLabel ?? "") · \(Money.format(cost, precise: true))")
                 .font(Theme.Fonts.sans(10))
                 .foregroundStyle(Theme.textTertiary.opacity(0.8))
         }
@@ -514,9 +529,19 @@ private struct ProposalCard: View {
     @State private var expanded: Int?
     @State private var promptDraft = ""
     @State private var launching = false
+    @State private var waitForNight: Bool?
 
     private var dispatcher: Dispatcher { store.dispatcher }
     private var launched: Bool { dispatcher.isLaunched(message.id) }
+
+    private var rules: [RuleCheck.Result] {
+        RuleCheck.check(proposal, entries: ModelCatalog.entries(from: store.providers), budget: dispatcher.budgetUSD ?? proposal.budgetUSD)
+    }
+
+    /// Nachttarif nur anbieten, wenn ein Modell davon profitiert und er gerade nicht ohnehin gilt.
+    private var offersNight: Bool {
+        !Savings.isOffPeak() && proposal.tasks.contains { Savings.hasOffPeakPricing($0.model) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -533,7 +558,7 @@ private struct ProposalCard: View {
                 }
                 Spacer()
                 if let cost = proposal.estimatedCostUSD {
-                    Text(String(format: "≈ $%.2f", cost))
+                    Text("≈ " + Money.format(cost))
                         .font(Theme.Fonts.mono(12, .medium))
                         .foregroundStyle(overBudget ? Theme.red : Theme.textSecondary)
                 }
@@ -575,6 +600,20 @@ private struct ProposalCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            RuleSummary(results: rules)
+
+            if offersNight, !launched {
+                Toggle(isOn: Binding(get: { waitForNight ?? !proposal.urgent }, set: { waitForNight = $0 })) {
+                    Text("Auf den Nachttarif warten · Start \(Savings.clock(Savings.offPeakStart)) Uhr")
+                        .font(Theme.Fonts.sans(11.5))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .tint(Theme.green)
+                .help("DeepSeek berechnet nachts deutlich weniger. Nicht eilige Aufträge starten dann automatisch.")
+            }
+
             if proposal.tasks.count == 1, !proposal.alternatives.isEmpty, !launched {
                 VStack(alignment: .leading, spacing: 5) {
                     Eyebrow("Alternativen")
@@ -584,7 +623,7 @@ private struct ProposalCard: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Text(alt.model).font(Theme.Fonts.mono(11))
-                                if let cost = alt.estimatedCostUSD { Text(String(format: "≈ $%.2f", cost)).font(Theme.Fonts.mono(11)).foregroundStyle(Theme.textSecondary) }
+                                if let cost = alt.estimatedCostUSD { Text("≈ " + Money.format(cost)).font(Theme.Fonts.mono(11)).foregroundStyle(Theme.textSecondary) }
                                 if let note = alt.note { Text(note).font(Theme.Fonts.sans(11)).foregroundStyle(Theme.textTertiary).lineLimit(1) }
                                 Spacer()
                                 Image(systemName: "arrow.left.arrow.right").font(.system(size: 9)).foregroundStyle(Theme.textTertiary)
@@ -613,7 +652,8 @@ private struct ProposalCard: View {
                         expanded = nil
                         launching = true
                         Task {
-                            await dispatcher.launch(dispatcher.proposal(for: message) ?? proposal, from: message.id)
+                            await dispatcher.launch(dispatcher.proposal(for: message) ?? proposal, from: message.id,
+                                                    waitForOffPeak: offersNight && (waitForNight ?? !proposal.urgent))
                             launching = false
                         }
                     } label: {
@@ -651,9 +691,36 @@ private struct ProposalCard: View {
     }
 
     private var limitText: String {
-        let budget = (dispatcher.budgetUSD ?? proposal.budgetUSD).map { String(format: "Budget $%.2f", $0) } ?? "ohne Budget"
+        let budget = (dispatcher.budgetUSD ?? proposal.budgetUSD).map { "Budget " + Money.format($0) } ?? "ohne Budget"
         let time = (dispatcher.timeLimitMinutes ?? proposal.timeLimitMinutes).map { "\(Int($0)) min je Agent" } ?? "ohne Zeitlimit"
         return "\(budget) · \(time)"
+    }
+}
+
+/// Ergebnis der Regelprüfung: ruhig, wenn alles passt – Verstöße einzeln in Rot.
+private struct RuleSummary: View {
+    let results: [RuleCheck.Result]
+
+    var body: some View {
+        let failed = results.filter { !$0.ok }
+        if !results.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                if failed.isEmpty {
+                    Label("Sparregeln eingehalten", systemImage: "checkmark")
+                        .foregroundStyle(Theme.green.opacity(0.85))
+                        .help(results.map { "✓ \($0.title): \($0.detail)" }.joined(separator: "\n"))
+                } else {
+                    ForEach(failed) { result in
+                        Label("\(result.title): \(result.detail)", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(Theme.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text("Unbekannte Modelle und fehlender Denkaufwand werden beim Start automatisch korrigiert.")
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            .font(Theme.Fonts.sans(11))
+        }
     }
 }
 
@@ -689,10 +756,20 @@ private struct TaskRow: View {
                                 .lineLimit(1)
                         }
                     }
+                    HStack(spacing: 10) {
+                        Label("Denken: \((task.effort ?? .medium).title)", systemImage: "brain")
+                        if let stronger = task.escalateTo, Savings.cascade {
+                            Label("bei Fehlschlag → \(stronger.split(separator: "/").last ?? "")", systemImage: "arrow.up.forward")
+                                .help("Scheitern Build oder Tests, übernimmt \(stronger).")
+                        }
+                    }
+                    .font(Theme.Fonts.sans(10.5))
+                    .foregroundStyle(Theme.textTertiary)
+                    .lineLimit(1)
                 }
                 Spacer()
                 if let cost = task.estimatedCostUSD {
-                    Text(String(format: "$%.2f", cost))
+                    Text(Money.format(cost))
                         .font(Theme.Fonts.mono(11))
                         .foregroundStyle(Theme.textTertiary)
                 }
@@ -737,7 +814,7 @@ private struct TaskRow: View {
     private var modelMenu: some View {
         Menu {
             ForEach(ModelCatalog.entries(from: store.providers).filter(\.model.supportsTools).sorted { $0.blendedPrice < $1.blendedPrice }, id: \.selection) { entry in
-                Button("\(entry.model.name) · \(entry.providerName) · $\(String(format: "%.2f", entry.inputPrice))/M") {
+                Button("\(entry.model.name) · \(entry.providerName) · \(Money.format(entry.inputPrice))/Mio.") {
                     onModel(entry.selection.label)
                 }
             }
@@ -826,10 +903,10 @@ private struct DispatchComposer: View {
             Button("Kein festes Budget") { dispatcher.budgetUSD = nil }
             Divider()
             ForEach([0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10], id: \.self) { value in
-                Button(String(format: "max. $%.2f", value)) { dispatcher.budgetUSD = value }
+                Button("max. " + Money.formatEUR(value)) { dispatcher.budgetUSD = Money.usd(fromEUR: value) }
             }
         } label: {
-            chip(symbol: "dollarsign.circle", text: dispatcher.budgetUSD.map { String(format: "max. $%.2f", $0) } ?? "Budget", active: dispatcher.budgetUSD != nil)
+            chip(symbol: "eurosign.circle", text: dispatcher.budgetUSD.map { "max. " + Money.format($0) } ?? "Budget", active: dispatcher.budgetUSD != nil)
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
         .help("Höchstbetrag pro Auftrag – bei 85 % wird geordnet abgeschlossen, bei 100 % gestoppt")

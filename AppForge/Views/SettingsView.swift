@@ -7,6 +7,7 @@ struct SettingsView: View {
             Tab("Agenten", systemImage: "person.3") { AgentsSettings() }
             Tab("Konnektoren", systemImage: "puzzlepiece.extension") { ConnectorsSettings() }
             Tab("Medien", systemImage: "photo.on.rectangle") { MediaSettingsView() }
+            Tab("Sparen", systemImage: "leaf") { SavingsSettings() }
             Tab("Skills", systemImage: "book") { SkillsSettings() }
             Tab("Engine", systemImage: "gearshape.2") { EngineSettings() }
         }
@@ -238,7 +239,7 @@ struct MediaSettingsView: View {
                     ForEach(MediaSettings.imageSizes, id: \.0) { Text("\($0.1) · \($0.0.replacingOccurrences(of: "*", with: "×"))").tag($0.0) }
                 }
                 if let cost = settings.estimatedCost(.image) {
-                    Text(String(format: "≈ $%.3f pro Bild", cost)).font(Theme.Fonts.small).foregroundStyle(Theme.textTertiary)
+                    Text("≈ " + Money.format(cost, precise: true) + " pro Bild").font(Theme.Fonts.small).foregroundStyle(Theme.textTertiary)
                 }
             }
 
@@ -254,7 +255,7 @@ struct MediaSettingsView: View {
                 }
                 Stepper("Länge: \(settings.videoDuration) Sekunden", value: $settings.videoDuration, in: 2...15)
                 if let cost = settings.estimatedCost(.video) {
-                    Text(String(format: "≈ $%.2f pro Video", cost)).font(Theme.Fonts.small).foregroundStyle(Theme.textTertiary)
+                    Text("≈ " + Money.format(cost) + " pro Video").font(Theme.Fonts.small).foregroundStyle(Theme.textTertiary)
                 }
             }
 

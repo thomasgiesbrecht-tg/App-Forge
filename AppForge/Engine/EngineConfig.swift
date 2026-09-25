@@ -80,7 +80,13 @@ enum EngineConfig {
             mcp[connector.id] = entry
             if connector.scope == .selectedAgents { toolLocks["\(connector.id)_*"] = false }
         }
-        let config: [String: Any] = [
+        // Sparregeln, die die Engine selbst durchsetzt – unabhängig davon, was ein Modell „möchte“:
+        // Schrittgrenze je Agent, gekürzte Werkzeugausgaben, Verdichten langer Verläufe, Kleinstmodell für Nebenaufgaben.
+        var agents: [String: Any] = [:]
+        for name in ["build", "plan", "general", "explore"] + AgentLibrary.load().map(\.name).filter({ $0 != "dispatcher" }) {
+            agents[name] = ["steps": Savings.steps]
+        }
+        var config: [String: Any] = [
             "$schema": "https://opencode.ai/config.json",
             "instructions": [baseInstructionsFile.path],
             "mcp": mcp,
@@ -88,7 +94,12 @@ enum EngineConfig {
             // Die Engine fragt bei Änderungen und Befehlen immer nach –
             // welche Anfragen automatisch freigegeben werden, entscheidet AppForge (Berechtigungsmodus).
             "permission": ["edit": "ask", "bash": "ask"],
+            "agent": agents,
+            "tool_output": ["max_lines": Savings.toolOutputLines, "max_bytes": Savings.toolOutputBytes],
+            // Alte Werkzeugausgaben aus dem Verlauf entfernen und bei vollem Kontext zusammenfassen
+            "compaction": ["auto": true, "prune": true],
         ]
+        if let small = Savings.smallModel { config["small_model"] = small }
         let data = try JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         try data.write(to: configFile, options: .atomic)
     }

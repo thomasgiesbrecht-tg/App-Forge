@@ -48,6 +48,30 @@ struct Mission: Codable, Identifiable, Hashable, Sendable {
     /// Dateien, Build/Tests, Fortschritt, Kontext – aus dem letzten Überwachungsdurchlauf.
     var insights: MissionInsights?
 
+    // Sparregeln (optional, damit ältere gespeicherte Aufträge lesbar bleiben)
+    var effort: Effort?
+    /// Stärkeres Modell für den Fall, dass Build oder Tests scheitern.
+    var escalateTo: String?
+    /// Gesetzt, sobald das stärkere Modell übernommen hat.
+    var escalatedModel: String?
+    /// Prüfschritt („bitte bauen“) wurde schon verlangt.
+    var verifySent: Bool?
+    /// Frühester Start (günstiger Tarif).
+    var notBefore: Date?
+    /// Zeitpunkt der letzten Nachricht von AppForge an den Agenten (Prüfschritt, Stufe, Abschluss).
+    var followUpAt: Date?
+    /// Immer derselbe Systemhinweis für diese Sitzung – sonst verfällt der Zwischenspeicher des Anbieters.
+    var systemHint: String?
+    /// Eingabe-Tokens insgesamt und davon aus dem Zwischenspeicher gelesen.
+    var inputTokens: Double?
+    var cachedTokens: Double?
+
+    var activeModel: String { escalatedModel ?? model }
+    var cacheRate: Double? {
+        guard let inputTokens, let cachedTokens, inputTokens + cachedTokens > 0 else { return nil }
+        return cachedTokens / (inputTokens + cachedTokens)
+    }
+
     var projectName: String { URL(filePath: directory).lastPathComponent }
     var elapsed: TimeInterval { (endedAt ?? Date()).timeIntervalSince(startedAt) }
     var budgetFraction: Double? { budgetUSD.map { $0 > 0 ? spentUSD / $0 : 0 } }
@@ -105,6 +129,8 @@ final class Dispatcher {
 
     // Aufträge
     private(set) var missions: [Mission] = []
+    /// In der Live-Ansicht angeklickter Agent – links erscheinen dann seine Gedanken.
+    var focus: ThoughtFocus?
     /// Die letzten Ereignisse, neueste zuerst.
     private(set) var events: [MissionEvent] = []
     @ObservationIgnored private var reportedConflicts: Set<String> = []
@@ -154,7 +180,28 @@ final class Dispatcher {
     }
 
     func text(of message: ChatMessage) -> String {
-        message.parts.filter { $0.type == "text" && $0.synthetic != true }.compactMap(\.text).joined(separator: "\n")
+        let text = message.parts.filter { $0.type == "text" && $0.synthetic != true }.compactMap(\.text).joined(separator: "\n")
+        return message.info.isUser ? Self.stripSituation(text) : text
+    }
+
+    static let situationStart = "⟦Lage⟧"
+    static let situationEnd = "⟦/Lage⟧"
+
+    /// Der Lage-Block steht für die Zentrale vor jeder Nutzernachricht – angezeigt wird nur, was du geschrieben hast.
+    static func stripSituation(_ text: String) -> String {
+        guard text.hasPrefix(situationStart), let end = text.range(of: situationEnd) else { return text }
+        return String(text[end.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func modelInfo(_ label: String) -> ModelInfo? {
+        let parts = label.split(separator: "/", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return nil }
+        return store?.providers?.all.first { $0.id == parts[0] }?.models[parts[1]]
+    }
+
+    private func selection(_ label: String) -> ModelSelection? {
+        let parts = label.split(separator: "/", maxSplits: 1).map(String.init)
+        return parts.count == 2 ? ModelSelection(providerID: parts[0], modelID: parts[1]) : nil
     }
 
     // MARK: Start
@@ -199,9 +246,12 @@ final class Dispatcher {
             }
             guard let sessionID else { return }
             isThinking = true
+            let router = effectiveRouterModel
             try await client.prompt(
-                sessionID: sessionID, directory: directory, text: trimmed,
-                model: effectiveRouterModel, agent: "dispatcher", system: context()
+                sessionID: sessionID, directory: directory,
+                text: "\(Self.situationStart)\n\(situation())\n\(Self.situationEnd)\n\n\(trimmed)",
+                model: router, agent: "dispatcher", system: stableContext(),
+                variant: Effort.low.variant(for: router.flatMap { modelInfo($0.label) })
             )
         } catch {
             isThinking = false
@@ -209,23 +259,16 @@ final class Dispatcher {
         }
     }
 
-    /// Aktueller Kontext für die Zentrale: Projekt, Grenzen, Agenten, Modelle mit Preisen und Erfahrungen.
-    private func context() -> String {
+    /// Was sich selten ändert – Agenten und Modelle mit Preisen. Steht im Systemteil und bleibt dadurch
+    /// von Nachricht zu Nachricht gleich, sodass der Anbieter den ganzen Verlauf zwischenspeichern kann.
+    private func stableContext() -> String {
         guard let store else { return "" }
-        let project = store.selectedProject.map { "\(URL(filePath: $0).lastPathComponent) (\($0))" } ?? "keins geöffnet"
-        let budget = budgetUSD.map { String(format: "max. $%.2f pro Auftrag", $0) } ?? "kein festes Budget – trotzdem sparsam"
-        let time = timeLimitMinutes.map { "max. \(Int($0)) Minuten pro Auftrag" } ?? "kein Zeitlimit"
         let agents = store.agents.filter { $0.isPrimary && $0.isVisible }
             .map { "- \($0.name): \($0.description ?? $0.displayName)" }.joined(separator: "\n")
         let subagents = store.subagents.map { "- \($0.name): \($0.description ?? "")" }.joined(separator: "\n")
-        let catalog = ModelCatalog.describe(ModelCatalog.entries(from: store.providers), experience: ModelCatalog.experience(from: missions))
+        let catalog = ModelCatalog.describe(ModelCatalog.entries(from: store.providers), experience: [:])
         return """
-        # Aktueller Kontext (von AppForge)
-        Projekt: \(project)
-        Zielplattform: \(store.platform.title)
-        Budget: \(budget)
-        Zeit: \(time)
-        Heute bereits ausgegeben: \(String(format: "$%.3f", spentToday))
+        # Ausstattung (von AppForge)
 
         ## Agenten (Feld "agent")
         \(agents)
@@ -233,8 +276,29 @@ final class Dispatcher {
         ## Unteragenten (werden vom Koordinator beauftragt)
         \(subagents.isEmpty ? "- keine" : subagents)
 
-        ## Verfügbare Modelle (Feld "model", günstigste zuerst)
+        ## Verfügbare Modelle (Feld "model" und "escalateTo", günstigste zuerst)
         \(catalog.isEmpty ? "- keine verbunden" : catalog)
+        """
+    }
+
+    /// Was sich ständig ändert – Projekt, Grenzen, Ausgaben, Erfahrungen. Steht als Lage-Block vor der Nutzernachricht.
+    private func situation() -> String {
+        guard let store else { return "" }
+        let project = store.selectedProject.map { URL(filePath: $0).lastPathComponent } ?? "keins geöffnet"
+        let budget = budgetUSD.map { String(format: "max. $%.2f pro Auftrag (%@)", $0, Money.format($0)) } ?? "kein festes Budget – trotzdem sparsam"
+        let time = timeLimitMinutes.map { "max. \(Int($0)) Minuten pro Auftrag" } ?? "kein Zeitlimit"
+        let experience = ModelCatalog.experience(from: missions)
+            .sorted { $0.value.runs > $1.value.runs }.prefix(8)
+            .map { "- \($0.key): \($0.value.summary)" }.joined(separator: "\n")
+        let offPeak = Savings.isOffPeak() ? "gilt gerade" : "ab \(Savings.clock(Savings.offPeakStart)) Uhr"
+        return """
+        Projekt: \(project) · Zielplattform: \(store.platform.title)
+        Budget: \(budget) · Zeit: \(time)
+        Heute ausgegeben: \(Money.format(spentToday)) · Nachttarif DeepSeek: \(offPeak)
+        Kurs: 1 $ = \(String(format: "%.3f", Money.eurPerUsd)) € – dem Nutzer Beträge immer in Euro nennen, JSON-Felder in US-Dollar
+        Stufen (günstig zuerst): \(Savings.cascade ? "an" : "aus")
+        Erfahrungen:
+        \(experience.isEmpty ? "- noch keine" : experience)
         """
     }
 
@@ -242,12 +306,15 @@ final class Dispatcher {
 
     /// Startet alle Teilaufträge eines Vorschlags. Unabhängige laufen sofort parallel,
     /// abhängige warten, bis ihre Vorgänger fertig sind.
-    func launch(_ proposal: Proposal, from messageID: String) async {
+    func launch(_ original: Proposal, from messageID: String, waitForOffPeak: Bool = false) async {
         guard let store, store.client != nil, let directory = store.selectedProject else {
             error = "Kein Projekt geöffnet – öffne links ein Projekt, damit die Aufträge dort arbeiten können."
             return
         }
-        guard !proposal.tasks.isEmpty else { return }
+        guard !original.tasks.isEmpty else { return }
+        // Regeln durchsetzen: unbekannte/werkzeuglose Modelle ersetzen, Denkaufwand ergänzen
+        let proposal = RuleCheck.fix(original, entries: ModelCatalog.entries(from: store.providers))
+        let notBefore = waitForOffPeak ? Savings.nextOffPeakStart() : nil
         let groupID = UUID()
         let ids = proposal.tasks.map { _ in UUID() }
 
@@ -268,7 +335,8 @@ final class Dispatcher {
                 model: task.model, agent: agent, directory: directory, sessionID: "",
                 budgetUSD: share(index), timeLimitMinutes: timeLimitMinutes ?? proposal.timeLimitMinutes,
                 estimatedCostUSD: task.estimatedCostUSD, state: .waiting,
-                groupID: groupID, dependsOn: task.dependsOn.map { ids[$0] }
+                groupID: groupID, dependsOn: task.dependsOn.map { ids[$0] },
+                effort: task.effort, escalateTo: Savings.cascade ? task.escalateTo : nil, notBefore: notBefore
             ))
         }
         missions.insert(contentsOf: created, at: 0)
@@ -276,6 +344,10 @@ final class Dispatcher {
         UserDefaults.standard.set(Array(launched), forKey: "dispatcher.launched")
         persistMissions()
 
+        if let notBefore {
+            log(proposal.title ?? "Auftrag", "wartet auf den Nachttarif · Start \(notBefore.formatted(date: .omitted, time: .shortened))")
+            return
+        }
         for mission in created where (mission.dependsOn ?? []).isEmpty {
             await start(mission.id)
         }
@@ -306,10 +378,13 @@ final class Dispatcher {
 
         do {
             let session = try await client.createSession(directory: mission.directory, title: mission.title)
+            let hint = store.platform.systemHint
             try await client.prompt(sessionID: session.id, directory: mission.directory, text: prompt,
                                     model: ModelSelection(providerID: parts[0], modelID: parts[1]),
-                                    agent: mission.agent, system: store.platform.systemHint)
+                                    agent: mission.agent, system: hint,
+                                    variant: (mission.effort ?? .medium).variant(for: modelInfo(mission.model)))
             update(id) {
+                $0.systemHint = hint
                 $0.sessionID = session.id
                 $0.state = .running
                 $0.startedAt = .now
@@ -340,6 +415,10 @@ final class Dispatcher {
 
         // Wartende: starten, sobald alle Vorgänger fertig sind – oder überspringen, wenn einer gescheitert ist
         for mission in missions where mission.state == .waiting && mission.sessionID.isEmpty {
+            if let notBefore = mission.notBefore, notBefore > .now {
+                update(mission.id) { $0.activity = "startet \(notBefore.formatted(date: .omitted, time: .shortened)) · Nachttarif" }
+                continue
+            }
             let deps = missions.filter { (mission.dependsOn ?? []).contains($0.id) }
             if deps.contains(where: { $0.state.isFinished && $0.state != .done }) {
                 update(mission.id) { $0.state = .cancelled; $0.activity = "übersprungen – ein Vorgänger ist nicht fertig geworden"; $0.endedAt = .now }
@@ -360,14 +439,22 @@ final class Dispatcher {
                 sessionIDs += children.map(\.id)
             }
             var spent = 0.0
+            var inputTokens = 0.0
+            var cachedTokens = 0.0
             var lastError: String?
             var answered = false
             var transcripts: [String: [ChatMessage]] = [:]
             for id in sessionIDs {
                 guard let envelopes = try? await client.messages(sessionID: id, directory: directory) else { continue }
                 spent += envelopes.compactMap(\.info.cost).reduce(0, +)
+                for envelope in envelopes {
+                    if !envelope.info.isUser { store?.ledger.record(project: directory, id: envelope.info.id, costUSD: envelope.info.cost ?? 0) }
+                    inputTokens += envelope.info.tokens?.input ?? 0
+                    cachedTokens += envelope.info.tokens?.cache?.read ?? 0
+                }
                 transcripts[id] = envelopes.map { ChatMessage(info: $0.info, parts: $0.parts) }
-                if id == mission.sessionID, let last = envelopes.last(where: { !$0.info.isUser }) {
+                // Fertig ist nur, wer zuletzt geantwortet hat – nicht, wenn AppForge gerade nachgefragt hat.
+                if id == mission.sessionID, let last = envelopes.last, !last.info.isUser {
                     answered = last.info.time.completed != nil
                     if !last.info.wasAborted { lastError = last.info.errorMessage }
                 }
@@ -375,10 +462,12 @@ final class Dispatcher {
             let isBusy = sessionIDs.contains { busy[$0] != nil }
             let own = transcripts[mission.sessionID] ?? []
             let children = transcripts.filter { $0.key != mission.sessionID }.map(\.value)
-            let insights = InsightExtractor.extract(main: own, children: children, contextLimit: contextLimit(for: mission.model)).insights
+            let insights = InsightExtractor.extract(main: own, children: children, contextLimit: contextLimit(for: mission.activeModel)).insights
             reportChanges(of: mission, old: mission.insights, new: insights)
             update(mission.id) {
                 $0.spentUSD = spent
+                $0.inputTokens = inputTokens
+                $0.cachedTokens = cachedTokens
                 $0.activity = ActivityDigest.activity(of: own) ?? $0.activity
                 $0.subagents = ActivityDigest.subagents(in: own) { transcripts[$0] }
                 $0.insights = insights
@@ -403,30 +492,63 @@ final class Dispatcher {
             let nearLimit = (current.budgetFraction ?? 0) >= 0.85 || (current.timeFraction ?? 0) >= 0.85
             if nearLimit, !current.wrapUpSent, isBusy {
                 let reason = (current.budgetFraction ?? 0) >= 0.85 ? "Das Budget" : "Die Zeit"
-                let parts = current.model.split(separator: "/", maxSplits: 1).map(String.init)
-                try? await client.prompt(
-                    sessionID: mission.sessionID, directory: directory,
-                    text: "\(reason) für diesen Auftrag ist fast aufgebraucht. Beende nur noch den aktuellen Schritt, stelle sicher, dass das Projekt baut, und fasse kurz zusammen: Was ist erledigt, was ist offen? Beginne nichts Neues.",
-                    model: parts.count == 2 ? ModelSelection(providerID: parts[0], modelID: parts[1]) : nil,
-                    agent: current.agent, system: nil
-                )
+                await followUp(current, model: current.activeModel,
+                               text: "\(reason) für diesen Auftrag ist fast aufgebraucht. Beende nur noch den aktuellen Schritt, stelle sicher, dass das Projekt baut, und fasse kurz zusammen: Was ist erledigt, was ist offen? Beginne nichts Neues.")
                 update(mission.id) { $0.wrapUpSent = true; $0.state = .wrappingUp }
                 log(mission.title, "\(reason) fast aufgebraucht – schließt ab")
                 continue
             }
 
-            // Fertig?
-            if !isBusy, answered, current.elapsed > 6 {
+            // Fertig? (Nach einer Nachfrage von AppForge erst die neue Antwort abwarten.)
+            let settled = current.followUpAt.map { Date().timeIntervalSince($0) > 8 } ?? true
+            if !isBusy, answered, settled, current.elapsed > 6 {
+                let buildFailed = insights.build.map { !$0.ok } ?? false
+                let testsFailed = insights.tests.map { !$0.ok } ?? false
+
+                // Prüfschritt: Dateien geändert, aber nie gebaut → einmal bauen lassen (mit demselben Modell)
+                if Savings.verifyBuild, lastError == nil, !insights.files.isEmpty, insights.build == nil,
+                   current.verifySent != true, (current.budgetFraction ?? 0) < 0.85 {
+                    await followUp(current, model: current.activeModel,
+                                   text: "Du hast Dateien geändert, das Projekt aber noch nicht gebaut. Baue es jetzt, behebe alle Fehler und fasse danach in zwei Sätzen zusammen, wie du es geprüft hast.")
+                    update(mission.id) { $0.verifySent = true; $0.activity = "Prüfschritt: baut das Projekt" }
+                    log(mission.title, "Prüfschritt – nie gebaut, baut jetzt")
+                    continue
+                }
+
+                // Stufe: Build/Tests rot oder Fehler → einmal an das stärkere Modell übergeben
+                if Savings.cascade, buildFailed || testsFailed || lastError != nil,
+                   let stronger = current.escalateTo, current.escalatedModel == nil, (current.budgetFraction ?? 0) < 0.8 {
+                    let reason = buildFailed ? "Der Build schlägt fehl" : testsFailed ? "Tests schlagen fehl" : "Der letzte Versuch ist mit einem Fehler abgebrochen"
+                    await followUp(current, model: stronger,
+                                   text: "\(reason). Du übernimmst jetzt als stärkeres Modell. Lies die Fehlermeldungen, behebe die Ursache, baue erneut, bis alles grün ist, und fasse kurz zusammen.")
+                    update(mission.id) { $0.escalatedModel = stronger; $0.activity = "übergeben an \(stronger.split(separator: "/").last ?? "")" }
+                    log(mission.title, "\(reason.lowercased()) – übergeben an \(stronger.split(separator: "/").last ?? "")")
+                    continue
+                }
+
+                let problem = lastError ?? (buildFailed ? "Build schlägt fehl" : testsFailed ? "Tests schlagen fehl" : nil)
                 update(mission.id) {
-                    $0.state = lastError == nil ? .done : .failed
-                    $0.activity = lastError ?? ActivityDigest.summary(of: own)
+                    $0.state = problem == nil ? .done : .failed
+                    $0.activity = problem ?? ActivityDigest.summary(of: own)
                     $0.endedAt = .now
                 }
-                if lastError == nil { log(mission.title, "fertig · \(String(format: "$%.3f", spent))", .good) }
-                else { log(mission.title, "fehlgeschlagen", .problem) }
+                if problem == nil { log(mission.title, "fertig · \(Money.format(spent))", .good) }
+                else { log(mission.title, "fehlgeschlagen · \(problem ?? "")", .problem) }
             }
         }
         reportConflicts()
+    }
+
+    /// Nachricht von AppForge an einen laufenden Agenten – mit demselben Systemhinweis wie beim Start,
+    /// damit der Zwischenspeicher des Anbieters erhalten bleibt.
+    private func followUp(_ mission: Mission, model label: String, text: String) async {
+        guard let store, let client = store.client, let model = selection(label) else { return }
+        try? await client.prompt(
+            sessionID: mission.sessionID, directory: mission.directory, text: text,
+            model: model, agent: mission.agent, system: mission.systemHint ?? store.platform.systemHint,
+            variant: (mission.effort ?? .medium).variant(for: modelInfo(label))
+        )
+        update(mission.id) { $0.followUpAt = .now }
     }
 
     /// Neue Build- und Testergebnisse in den Ticker schreiben.
