@@ -14,11 +14,23 @@ enum Money {
     static func eur(fromUSD usd: Double) -> Double { usd * eurPerUsd }
     static func usd(fromEUR eur: Double) -> Double { eurPerUsd > 0 ? eur / eurPerUsd : eur }
 
-    /// „0,08 €“ – kleine Beträge mit mehr Stellen, damit Cent-Bruchteile sichtbar bleiben.
+    /// Anzeige in Euro und Cent: „0,0008 € · 0,08 ct“.
     static func format(_ usd: Double, precise: Bool = false) -> String {
+        plain(usd, precise: precise) + " · " + cents(usd)
+    }
+
+    /// Nur Euro, z. B. für Texte an die Zentrale: „0,08 €“. Kleine Beträge mit mehr Stellen.
+    static func plain(_ usd: Double, precise: Bool = false) -> String {
         let value = eur(fromUSD: usd)
-        let digits = precise ? (value < 0.01 ? 4 : 3) : (value > 0 && value < 0.1 ? 3 : 2)
+        let digits = value > 0 && value < 0.01 ? 4 : (precise || (value > 0 && value < 0.1) ? 3 : 2)
         return formatEUR(value, digits: digits)
+    }
+
+    /// Nur Cent: „0,08 ct“, „2,4 ct“, „124 ct“.
+    static func cents(_ usd: Double) -> String {
+        let value = eur(fromUSD: usd) * 100
+        let digits = value == 0 ? 0 : (value < 1 ? 2 : (value < 10 ? 1 : 0))
+        return String(format: "%.\(digits)f", value).replacingOccurrences(of: ".", with: ",") + " ct"
     }
 
     static func formatEUR(_ value: Double, digits: Int = 2) -> String {
@@ -47,13 +59,17 @@ enum Money {
 final class CostLedger {
     /// Projektpfad → Summe in US-Dollar.
     private(set) var totals: [String: Double] = [:]
+    /// Chat (Haupt-Sitzung) → Summe in US-Dollar, Unteragenten eingerechnet.
+    private(set) var sessionTotals: [String: Double] = [:]
     @ObservationIgnored private var entries: [String: [String: Double]] = [:]
+    @ObservationIgnored private var sessionEntries: [String: [String: Double]] = [:]
     @ObservationIgnored private var backfilled: Set<String> = []
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     private struct Stored: Codable {
         var entries: [String: [String: Double]]
         var backfilled: [String]
+        var sessions: [String: [String: Double]]?
     }
 
     private static var file: URL { EngineConfig.supportDirectory.appending(path: "kosten.json") }
@@ -62,23 +78,38 @@ final class CostLedger {
         if let data = try? Data(contentsOf: Self.file), let stored = try? JSONDecoder().decode(Stored.self, from: data) {
             entries = stored.entries
             backfilled = Set(stored.backfilled)
+            sessionEntries = stored.sessions ?? [:]
             totals = entries.mapValues { $0.values.reduce(0, +) }
+            sessionTotals = sessionEntries.mapValues { $0.values.reduce(0, +) }
         }
     }
 
     func total(for project: String) -> Double { totals[project] ?? 0 }
 
-    func record(project: String, id: String, costUSD: Double) {
-        guard costUSD > 0, entries[project]?[id] != costUSD else { return }
-        entries[project, default: [:]][id] = costUSD
-        totals[project] = entries[project]?.values.reduce(0, +) ?? 0
-        scheduleSave()
+    func total(forSession sessionID: String) -> Double { sessionTotals[sessionID] ?? 0 }
+
+    /// `session`: der Chat, zu dem die Antwort gehört (bei Unteragenten der Haupt-Chat).
+    func record(project: String, id: String, costUSD: Double, session: String? = nil) {
+        guard costUSD > 0 else { return }
+        var changed = false
+        if entries[project]?[id] != costUSD {
+            entries[project, default: [:]][id] = costUSD
+            totals[project] = entries[project]?.values.reduce(0, +) ?? 0
+            changed = true
+        }
+        if let session, sessionEntries[session]?[id] != costUSD {
+            sessionEntries[session, default: [:]][id] = costUSD
+            sessionTotals[session] = sessionEntries[session]?.values.reduce(0, +) ?? 0
+            changed = true
+        }
+        if changed { scheduleSave() }
     }
 
-    func needsBackfill(_ project: String) -> Bool { !backfilled.contains(project) }
+    /// „v2“: seit es Kosten je Chat gibt, wird einmal neu nachgetragen.
+    func needsBackfill(_ project: String) -> Bool { !backfilled.contains("v2:" + project) }
 
     func markBackfilled(_ project: String) {
-        backfilled.insert(project)
+        backfilled.insert("v2:" + project)
         scheduleSave()
     }
 
@@ -87,7 +118,7 @@ final class CostLedger {
         saveTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled, let self else { return }
-            let stored = Stored(entries: self.entries, backfilled: Array(self.backfilled))
+            let stored = Stored(entries: self.entries, backfilled: Array(self.backfilled), sessions: self.sessionEntries)
             if let data = try? JSONEncoder().encode(stored) { try? data.write(to: Self.file, options: .atomic) }
         }
     }

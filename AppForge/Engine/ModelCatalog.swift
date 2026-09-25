@@ -114,7 +114,7 @@ enum ModelCatalog {
         var summary: String {
             var text = "\(runs) Aufträge, \(succeeded) allein geschafft"
             if escalated > 0 { text += ", \(escalated)× übergeben" }
-            text += ", Ø \(Money.format(averageCost))"
+            text += ", Ø \(Money.plain(averageCost))"
             if let cacheRate { text += ", Zwischenspeicher \(Int(cacheRate * 100)) %" }
             return text
         }

@@ -235,6 +235,12 @@ private struct ChatHeader: View {
                     HStack(spacing: 5) {
                         AppIconView(info: info, size: 14)
                         Text(info.appName)
+                        if let session = store.selectedSessionID, store.ledger.total(forSession: session) > 0 {
+                            Text("·  Chat \(Money.format(store.ledger.total(forSession: session)))")
+                                .font(Theme.Fonts.sans(10))
+                                .help("Bisherige Kosten dieses Chats, Unteragenten eingerechnet")
+                                .contentTransition(.numericText())
+                        }
                     }
                     .font(Theme.Fonts.sans(11))
                     .foregroundStyle(Theme.textTertiary)

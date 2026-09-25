@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>SWIFT-Amboss</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<!-- #eckig: quadratisch ohne Transparenz (für Xcode); sonst mit abgerundeten Ecken (Vorschau) -->
+<svg id="icon" width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Hintergrund: Anthrazit mit Lichtkegel von oben und Vignette -->
+    <radialGradient id="grund" cx=".5" cy=".42" r=".75">
+      <stop offset="0" stop-color="#1D1D21"/>
+      <stop offset=".55" stop-color="#111113"/>
+      <stop offset="1" stop-color="#070708"/>
+    </radialGradient>
+    <!-- Feine Diagonallinien (Carbon-artige Struktur) -->
+    <pattern id="struktur" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="10" stroke="#FFFFFF" stroke-opacity=".035" stroke-width="3"/>
+    </pattern>
+    <!-- Warmes Licht hinter dem Amboss -->
+    <radialGradient id="schein" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#E0A43A" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#E0A43A" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Gold: Grundverlauf von oben (hell) nach unten (dunkel) -->
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF0BE"/>
+      <stop offset=".12" stop-color="#F3CB6A"/>
+      <stop offset=".38" stop-color="#D7A23E"/>
+      <stop offset=".62" stop-color="#A9741F"/>
+      <stop offset=".85" stop-color="#7A5114"/>
+      <stop offset="1" stop-color="#4E330B"/>
+    </linearGradient>
+    <!-- Metallischer Glanz: senkrechte Lichtbänder -->
+    <linearGradient id="glanz" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".22" stop-color="#FFFFFF" stop-opacity=".28"/>
+      <stop offset=".3" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".58" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".66" stop-color="#FFF6DA" stop-opacity=".22"/>
+      <stop offset=".74" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".18"/>
+    </linearGradient>
+    <!-- Oberkante: schmale, sehr helle Fase -->
+    <linearGradient id="fase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFE7A3" stop-opacity=".2"/>
+      <stop offset=".3" stop-color="#FFFBEA"/>
+      <stop offset=".75" stop-color="#FFF1C8"/>
+      <stop offset="1" stop-color="#E7B95A"/>
+    </linearGradient>
+    <!-- Oberseite: fast weißes Gold, zur Kante hin wärmer -->
+    <linearGradient id="oben" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E9BD5C"/>
+      <stop offset=".35" stop-color="#FFF3CC"/>
+      <stop offset=".7" stop-color="#FBE3A0"/>
+      <stop offset="1" stop-color="#D9A544"/>
+    </linearGradient>
+    <!-- Gravur: dunkles Gold -->
+    <linearGradient id="gravur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A3B0C"/>
+      <stop offset="1" stop-color="#8A5F1A"/>
+    </linearGradient>
+
+    <filter id="schatten" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="weich" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+
+    <!-- Amboss im Profil: Horn links, Arbeitsfläche, Absatz rechts, Taille, ausgestellter Fuß -->
+    <path id="amboss" d="M175 442 C230 432 285 408 330 400 L800 400 L800 468 L776 486 L700 490 C672 520 660 560 662 600 L700 624 C740 640 766 652 772 690 L776 712 L386 712 L390 690 C396 652 422 640 462 624 L500 600 C502 560 490 520 452 490 L380 490 C300 488 230 470 175 442 Z"/>
+    <clipPath id="ambossForm"><use href="#amboss"/></clipPath>
+    <clipPath id="ecken"><rect width="1024" height="1024" rx="229"/></clipPath>
+  </defs>
+
+  <g id="inhalt" clip-path="url(#ecken)">
+    <rect width="1024" height="1024" fill="url(#grund)"/>
+    <rect width="1024" height="1024" fill="url(#struktur)"/>
+    <ellipse cx="512" cy="480" rx="400" ry="300" fill="url(#schein)"/>
+
+    <g transform="translate(512 505) scale(1.1) translate(-487 -556)">
+      <!-- Bodenschatten -->
+      <ellipse cx="580" cy="722" rx="250" ry="26" fill="#000" opacity=".75" filter="url(#schatten)"/>
+
+      <!-- Körper -->
+      <use href="#amboss" fill="url(#gold)"/>
+      <g clip-path="url(#ambossForm)">
+        <rect x="150" y="380" width="680" height="350" fill="url(#glanz)"/>
+        <!-- Fase der Arbeitsfläche -->
+        <rect x="150" y="398" width="660" height="14" fill="url(#fase)" opacity=".95"/>
+        <!-- Unterkante der Platte: dunkle Schattenfuge -->
+        <path d="M380 490 L700 490" stroke="#3E2808" stroke-width="10" opacity=".55" filter="url(#weich)"/>
+        <!-- Lichtkante am Fuß -->
+        <path d="M386 712 L776 712" stroke="#FFE3A0" stroke-width="3" opacity=".35"/>
+      </g>
+      <use href="#amboss" fill="none" stroke="#3D2807" stroke-width="3" opacity=".8"/>
+      <!-- Oberseite (leicht von oben gesehen): Arbeitsfläche und Horn -->
+      <path d="M175 442 C230 432 285 408 330 400 L800 400 L784 380 L338 380 C288 388 232 418 175 442 Z" fill="url(#oben)"/>
+      <path d="M338 380 L784 380" stroke="#FFFCEE" stroke-width="2" opacity=".9"/>
+
+      <!-- Gravur „SWIFT“ auf der Platte: Lichtkante unten, dunkle Kante oben, vertiefte Fläche -->
+      <g font-family="Didot, 'Bodoni 72', Baskerville, serif" font-weight="700" font-size="66" letter-spacing="18" text-anchor="middle">
+        <text x="590" y="472" fill="#FFE9AE" opacity=".55">SWIFT</text>
+        <text x="590" y="469" fill="#2E1E05" opacity=".85">SWIFT</text>
+        <text x="590" y="470" fill="url(#gravur)">SWIFT</text>
+      </g>
+    </g>
+  </g>
+</svg>
+<script>
+  // #eckig: ohne abgerundete Ecken und ohne Transparenz
+  if (location.hash === "#eckig") document.getElementById("inhalt").removeAttribute("clip-path");
+</script>
+</body>
+</html>

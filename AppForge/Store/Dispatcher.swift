@@ -285,7 +285,7 @@ final class Dispatcher {
     private func situation() -> String {
         guard let store else { return "" }
         let project = store.selectedProject.map { URL(filePath: $0).lastPathComponent } ?? "keins geöffnet"
-        let budget = budgetUSD.map { String(format: "max. $%.2f pro Auftrag (%@)", $0, Money.format($0)) } ?? "kein festes Budget – trotzdem sparsam"
+        let budget = budgetUSD.map { String(format: "max. $%.2f pro Auftrag (%@)", $0, Money.plain($0)) } ?? "kein festes Budget – trotzdem sparsam"
         let time = timeLimitMinutes.map { "max. \(Int($0)) Minuten pro Auftrag" } ?? "kein Zeitlimit"
         let experience = ModelCatalog.experience(from: missions)
             .sorted { $0.value.runs > $1.value.runs }.prefix(8)
@@ -294,7 +294,7 @@ final class Dispatcher {
         return """
         Projekt: \(project) · Zielplattform: \(store.platform.title)
         Budget: \(budget) · Zeit: \(time)
-        Heute ausgegeben: \(Money.format(spentToday)) · Nachttarif DeepSeek: \(offPeak)
+        Heute ausgegeben: \(Money.plain(spentToday)) · Nachttarif DeepSeek: \(offPeak)
         Kurs: 1 $ = \(String(format: "%.3f", Money.eurPerUsd)) € – dem Nutzer Beträge immer in Euro nennen, JSON-Felder in US-Dollar
         Stufen (günstig zuerst): \(Savings.cascade ? "an" : "aus")
         Erfahrungen:
@@ -448,7 +448,7 @@ final class Dispatcher {
                 guard let envelopes = try? await client.messages(sessionID: id, directory: directory) else { continue }
                 spent += envelopes.compactMap(\.info.cost).reduce(0, +)
                 for envelope in envelopes {
-                    if !envelope.info.isUser { store?.ledger.record(project: directory, id: envelope.info.id, costUSD: envelope.info.cost ?? 0) }
+                    if !envelope.info.isUser { store?.ledger.record(project: directory, id: envelope.info.id, costUSD: envelope.info.cost ?? 0, session: mission.sessionID) }
                     inputTokens += envelope.info.tokens?.input ?? 0
                     cachedTokens += envelope.info.tokens?.cache?.read ?? 0
                 }

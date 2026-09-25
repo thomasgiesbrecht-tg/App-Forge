@@ -493,6 +493,9 @@ private struct DispatchMessageView: View {
                 if proposal.dispatch {
                     ProposalCard(message: message, proposal: proposal)
                 }
+                if let media = proposal.media {
+                    MediaProposalCard(request: media)
+                }
                 footer
             }
         } else {
@@ -515,7 +518,7 @@ private struct DispatchMessageView: View {
     @ViewBuilder private var footer: some View {
         if let cost = message.info.cost, message.info.time.completed != nil {
             Text("\(message.info.modelLabel ?? "") · \(Money.format(cost, precise: true))")
-                .font(Theme.Fonts.sans(10))
+                .font(Theme.Fonts.sans(9.5))
                 .foregroundStyle(Theme.textTertiary.opacity(0.8))
         }
     }
@@ -709,6 +712,54 @@ private struct ProposalCard: View {
         let budget = (dispatcher.budgetUSD ?? proposal.budgetUSD).map { "Budget " + Money.format($0) } ?? "ohne Budget"
         let time = (dispatcher.timeLimitMinutes ?? proposal.timeLimitMinutes).map { "\(Int($0)) min je Agent" } ?? "ohne Zeitlimit"
         return "\(budget) · \(time)"
+    }
+}
+
+/// Bild- oder Videowunsch: Die Zentrale schreibt den Prompt, erzeugt wird mit /foto bzw. /video im aktuellen Projekt-Chat.
+private struct MediaProposalCard: View {
+    @Environment(AppStore.self) private var store
+    let request: MediaRequest
+    @State private var prompt = ""
+    @State private var started = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: request.kind.symbol).foregroundStyle(Theme.textSecondary)
+                Text(request.kind == .image ? "Bild erzeugen" : "Video erzeugen").font(Theme.Fonts.sans(14, .medium))
+                Spacer()
+                if let cost = MediaSettings.current.estimatedCost(request.kind) {
+                    Text("≈ " + Money.format(cost)).font(Theme.Fonts.mono(11)).foregroundStyle(Theme.textSecondary)
+                }
+            }
+            TextEditor(text: $prompt)
+                .font(Theme.Fonts.mono(11.5))
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .frame(minHeight: 90)
+                .background(Theme.black, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
+            HStack {
+                Text(store.selectedProject.map { "landet im Chat von \(ProjectInfoCache.info(for: $0).appName)" } ?? "Öffne zuerst links ein Projekt")
+                    .font(Theme.Fonts.sans(11)).foregroundStyle(Theme.textTertiary)
+                Spacer()
+                if started {
+                    Label("Läuft im Projekt-Chat", systemImage: "checkmark").font(Theme.Fonts.sans(12, .medium)).foregroundStyle(Theme.green)
+                } else {
+                    Button {
+                        started = true
+                        Task { await store.media.run(request.kind, prompt: prompt, inputImage: nil) }
+                    } label: {
+                        Label(request.kind == .image ? "Bild erzeugen" : "Video erzeugen", systemImage: "sparkles")
+                    }
+                    .buttonStyle(PillButtonStyle(prominent: true))
+                    .disabled(store.selectedProject == nil || prompt.isEmpty)
+                }
+            }
+        }
+        .padding(16)
+        .glass(cornerRadius: 18, tintOpacity: 0)
+        .onAppear { prompt = request.prompt }
     }
 }
 

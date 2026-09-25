@@ -37,9 +37,9 @@ data = json.load(sys.stdin)
 phones = [d for d in data.get("result", {}).get("devices", [])
           if d.get("hardwareProperties", {}).get("deviceType") == "iPhone"
           and d.get("hardwareProperties", {}).get("reality") == "physical"]
-# Erreichbare iPhones zuerst (eingeschaltet und nicht „unavailable“)
-phones.sort(key=lambda d: (d.get("connectionProperties", {}).get("tunnelState") == "unavailable",
-                           d.get("deviceProperties", {}).get("bootState") != "booted"))
+# Nur erreichbare iPhones (eingeschaltet und nicht „unavailable“)
+phones = [d for d in phones if d.get("connectionProperties", {}).get("tunnelState") != "unavailable"
+          and d.get("deviceProperties", {}).get("bootState") == "booted"]
 if phones:
     print(phones[0]["hardwareProperties"]["udid"])
 ' || true)

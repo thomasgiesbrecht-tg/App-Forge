@@ -136,10 +136,15 @@ enum DeepLink {
 }
 
 extension Double {
-    /// US-Dollar-Betrag als Euro, z. B. „0,08 €“ – kleine Beträge mit mehr Stellen.
+    /// US-Dollar-Betrag in Euro und Cent, z. B. „0,0008 € · 0,08 ct“ – wie auf dem Mac.
     var euro: String {
         let value = self * SharedStore.eurPerUsd
-        let digits = value > 0 && value < 0.1 ? 3 : 2
-        return value.formatted(.currency(code: "EUR").precision(.fractionLength(digits)))
+        let digits = value > 0 && value < 0.01 ? 4 : (value > 0 && value < 0.1 ? 3 : 2)
+        let cents = value * 100
+        let centDigits = cents == 0 ? 0 : (cents < 1 ? 2 : (cents < 10 ? 1 : 0))
+        func comma(_ number: Double, _ digits: Int) -> String {
+            String(format: "%.\(digits)f", number).replacingOccurrences(of: ".", with: ",")
+        }
+        return "\(comma(value, digits)) € · \(comma(cents, centDigits)) ct"
     }
 }

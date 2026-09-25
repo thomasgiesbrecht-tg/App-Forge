@@ -114,14 +114,8 @@ struct SidebarView: View {
                                 .truncationMode(.middle)
                         }
                         Spacer(minLength: 0)
-                        let spent = store.ledger.total(for: path)
-                        if spent > 0 {
-                            Text(Money.format(spent))
-                                .font(Theme.Fonts.mono(10.5))
-                                .foregroundStyle(isSelected ? Theme.textSecondary : Theme.textTertiary)
-                                .help("Bisher für diese App ausgegeben – Chats, Aufträge, Unteragenten und Medien")
-                                .contentTransition(.numericText())
-                        }
+                        CostStack(usd: store.ledger.total(for: path), highlighted: isSelected)
+                            .help("Bisher für diese App ausgegeben – Chats, Aufträge, Unteragenten und Medien")
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -192,6 +186,7 @@ struct SidebarView: View {
                             EmberDot()
                                 .transition(.scale.combined(with: .opacity))
                         }
+                        CostStack(usd: store.ledger.total(forSession: session.id), highlighted: isSelected)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -255,6 +250,26 @@ private struct Wordmark: View {
 }
 
 /// Glimmender Punkt für aktive Chats.
+/// Kosten ganz kompakt: Euro oben, Cent darunter.
+struct CostStack: View {
+    let usd: Double
+    var highlighted = false
+
+    var body: some View {
+        if usd > 0 {
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(Money.plain(usd))
+                Text(Money.cents(usd))
+            }
+            .font(Theme.Fonts.mono(9))
+            .foregroundStyle(highlighted ? Theme.textSecondary : Theme.textTertiary)
+            .lineLimit(1)
+            .fixedSize()
+            .contentTransition(.numericText())
+        }
+    }
+}
+
 struct EmberDot: View {
     var body: some View {
         TimelineView(.animation) { context in

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>AppForge Logo</title>
+<style>
+  :root { --bg:#000; --raise:#0B0B0B; --line:#1E1E1E; --text:#F2F2F0; --muted:#8C8C8C; --dim:#555; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif; padding: 40px 32px 80px; }
+  h1 { font-weight: 500; font-size: 20px; margin-bottom: 6px; }
+  p.lead { color: var(--muted); max-width: 760px; margin-bottom: 36px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 28px; }
+  .card { background: var(--raise); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .card p { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+  .big { width: 256px; height: 256px; display: block; margin: 0 auto 18px; }
+  .row { display: flex; align-items: end; gap: 18px; justify-content: center; }
+  .row div { text-align: center; color: var(--dim); font-size: 10.5px; }
+  .row svg { display: block; margin: 0 auto 4px; }
+  .mono { filter: grayscale(1) contrast(1.4); }
+  .light { background: #ECECEC; border-radius: 10px; padding: 8px; }
+</style>
+</head>
+<body>
+<h1>AppForge – App-Icon</h1>
+<p class="lead">Leitidee: „Aus Code wird eine App geschmiedet.“ Stil wie Chroma und Cine.Cut – dunkler Grund, ein geometrisches Zeichen, dünne weiße Linien und eine leuchtende Farbfläche. Farben aus der App: Orange #FF8A33 für glühendes Metall, Grün #4CD97B für „fertig“, Weiß #F2F2F0 für Linien.</p>
+
+<!-- Bausteine -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="glut" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC08A"/><stop offset=".45" stop-color="#FF8A33"/><stop offset="1" stop-color="#D9581A"/>
+    </linearGradient>
+    <linearGradient id="gruen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BF0B9"/><stop offset="1" stop-color="#3FBF6A"/>
+    </linearGradient>
+    <radialGradient id="grund" cx=".5" cy=".62" r=".6">
+      <stop offset="0" stop-color="#161210"/><stop offset="1" stop-color="#050505"/>
+    </radialGradient>
+    <filter id="leuchten" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="form"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+    <!-- Amboss: Horn links, Arbeitsfläche, Taille, Fuß -->
+    <path id="amboss" d="M262 522 C318 506 350 494 386 494 L760 494 L760 572 L650 572 L624 636 L706 694 L706 728 L378 728 L378 694 L460 636 L434 572 L396 572 C350 572 306 556 262 522 Z"/>
+  </defs>
+</svg>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const shapes = {
+  A: `<!-- A · Schlag: glühender Amboss, dünner Bogen des Hammerschwungs, Hammerkopf als Punkt -->
+  <g clip-path="url(#form)"><rect x="100" y="100" width="824" height="824" fill="url(#grund)"/>
+    <use href="#amboss" fill="url(#glut)" filter="url(#leuchten)"/>
+    <path d="M250 430 A300 300 0 0 1 700 318" fill="none" stroke="#F2F2F0" stroke-width="18" stroke-linecap="round"/>
+    <circle cx="700" cy="318" r="30" fill="#F2F2F0"/>
+  </g>`,
+  E: `<!-- E · Code-Hammer: der Hammer ist der Schrägstrich in </> -->
+  <g clip-path="url(#form)"><rect x="100" y="100" width="824" height="824" fill="url(#grund)"/>
+    <polyline points="352,420 248,530 352,640" fill="none" stroke="#F2F2F0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="672,420 776,530 672,640" fill="none" stroke="#F2F2F0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="452" y1="690" x2="562" y2="392" stroke="#F2F2F0" stroke-width="22" stroke-linecap="round"/>
+    <rect x="498" y="312" width="156" height="84" rx="20" transform="rotate(20.3 576 354)" fill="url(#glut)" filter="url(#leuchten)"/>
+  </g>`,
+  C: `<!-- C · Klammern: Code-Klammern < > umschließen einen glühenden Hammer -->
+  <g clip-path="url(#form)"><rect x="100" y="100" width="824" height="824" fill="#050505"/>
+    <polyline points="352,372 236,512 352,652" fill="none" stroke="#F2F2F0" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="672,372 788,512 672,652" fill="none" stroke="#F2F2F0" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="rotate(-32 512 540)">
+      <line x1="512" y1="470" x2="512" y2="700" stroke="#F2F2F0" stroke-width="22" stroke-linecap="round"/>
+      <rect x="402" y="352" width="220" height="104" rx="24" fill="url(#glut)" filter="url(#leuchten)"/>
+    </g>
+  </g>`,
+  D: `<!-- D · Esse: offener Kreisbogen wie bei Chroma, darin der glühende Amboss, grüner Funke am Bogenende -->
+  <g clip-path="url(#form)"><rect x="100" y="100" width="824" height="824" fill="#050505"/>
+    <path d="M702 300 A300 300 0 1 0 780 640" fill="none" stroke="#F2F2F0" stroke-width="16" stroke-linecap="round"/>
+    <g transform="translate(512 548) scale(.62) translate(-512 -610)">
+      <use href="#amboss" fill="url(#glut)" filter="url(#leuchten)"/>
+    </g>
+    <circle cx="702" cy="300" r="22" fill="none" stroke="#4CD97B" stroke-width="12"/>
+  </g>`
+};
+  const concepts = [
+    ["E", "E · Code-Hammer (Empfehlung)", "Der Hammer ist der Schrägstrich in &lt;/&gt;: Programmieren und Schmieden in einem Zeichen. Gebaut wie Cine.Cut – weiße Linien, eine glühende Fläche. Bleibt auch in 16 px als &lt;/&gt; lesbar."],
+    ["A", "A · Schlag", "Glühender Amboss, der dünne Bogen ist der Hammerschwung, der Punkt der Hammerkopf. Am ruhigsten, liest sich auch in 16 px als Amboss."],
+    ["D", "D · Esse", "Offener Kreisbogen wie bei Chroma, darin der Amboss, am Bogenende ein grüner Funke. Am nächsten an deinen anderen Icons."],
+  ];
+  const svg = (id, size, extra = "") =>
+    `<svg class="${extra}" width="${size}" height="${size}" viewBox="0 0 1024 1024">${shapes[id]}</svg>`;
+  document.getElementById("grid").innerHTML = concepts.map(([id, title, text]) => `
+    <section class="card">
+      <h2>${title}</h2><p>${text}</p>
+      ${svg(id, 256).replace("<svg", '<svg class="big"')}
+      <div class="row">
+        <div>${svg(id, 64)}64</div><div>${svg(id, 32)}32</div><div>${svg(id, 16)}16</div>
+        <div>${svg(id, 64, "mono")}einfarbig</div>
+        <div class="light">${svg(id, 48)}</div>
+      </div>
+    </section>`).join("");
+  // #A, #C … zeigt einen Entwurf groß (zum Prüfen)
+  if (location.hash) {
+    const id = location.hash.slice(1);
+    document.body.innerHTML = `<div style="display:grid;place-items:center;height:100vh">${svg(id, 760)}</div>` + document.body.querySelector("svg").outerHTML;
+  }
+</script>
+</body>
+</html>

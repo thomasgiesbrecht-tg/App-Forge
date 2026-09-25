@@ -44,7 +44,7 @@ struct MessageRow: View {
                 }
                 if let model = message.info.modelLabel, message.info.time.completed != nil, !visibleParts.isEmpty {
                     Text(footer(model: model))
-                        .font(Theme.Fonts.sans(10))
+                        .font(Theme.Fonts.sans(9.5))
                         .tracking(0.4)
                         .foregroundStyle(Theme.textTertiary.opacity(0.8))
                         .transition(.opacity)

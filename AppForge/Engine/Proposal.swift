@@ -1,5 +1,11 @@
 import Foundation
 
+/// Bild oder Video, das die Zentrale vorschlägt – erzeugt mit /foto bzw. /video.
+struct MediaRequest: Hashable, Sendable {
+    var kind: MediaKind
+    var prompt: String
+}
+
 /// Vorschlag der Zentrale, aus ihrer JSON-Antwort gelesen.
 /// Ein Vorschlag besteht aus einem oder mehreren Teilaufträgen, die parallel oder nacheinander laufen.
 struct Proposal: Hashable, Sendable {
@@ -38,6 +44,8 @@ struct Proposal: Hashable, Sendable {
     var tasks: [TaskPlan] = []
     /// `false`: darf auf den günstigen Nachttarif warten.
     var urgent = true
+    /// Bild- oder Videowunsch: geht an /foto bzw. /video statt an einen Agenten.
+    var media: MediaRequest?
 
     /// Liest das JSON-Objekt aus dem Antworttext (auch in ```json-Blöcken). `nil`, wenn keins gefunden wurde.
     static func parse(_ text: String) -> Proposal? {
@@ -75,6 +83,9 @@ struct Proposal: Hashable, Sendable {
         )
 
         if json["urgent"] == .bool(false) || string(json["urgent"]) == "false" { proposal.urgent = false }
+        if let kind = string(json["media"]?["kind"]).flatMap(MediaKind.init(rawValue:)), let prompt = string(json["media"]?["prompt"]) {
+            proposal.media = MediaRequest(kind: kind, prompt: prompt)
+        }
 
         if case .array(let items) = json["alternatives"] {
             proposal.alternatives = items.compactMap { item in

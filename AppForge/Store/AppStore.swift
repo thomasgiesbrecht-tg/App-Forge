@@ -310,10 +310,16 @@ final class AppStore {
     /// Einmalig pro Projekt: Kosten aller bisherigen Chats ins Kostenbuch übernehmen (liest nur lokal, kostet nichts).
     private func backfillCosts(_ path: String) async {
         guard let client, let all = try? await client.sessions(directory: path) else { return }
+        let parents = Dictionary(all.compactMap { s in s.parentID.map { (s.id, $0) } }, uniquingKeysWith: { a, _ in a })
+        func root(_ id: String) -> String {
+            var current = id
+            for _ in 0..<10 { guard let parent = parents[current] else { break }; current = parent }
+            return current
+        }
         for session in all {
             guard let envelopes = try? await client.messages(sessionID: session.id, directory: path) else { continue }
             for envelope in envelopes where !envelope.info.isUser {
-                ledger.record(project: path, id: envelope.info.id, costUSD: envelope.info.cost ?? 0)
+                ledger.record(project: path, id: envelope.info.id, costUSD: envelope.info.cost ?? 0, session: root(session.id))
             }
         }
         ledger.markBackfilled(path)
@@ -647,7 +653,7 @@ final class AppStore {
         switch event {
         case .messageUpdated(let info):
             if !info.isUser, let cost = info.cost, let eventDirectory {
-                ledger.record(project: eventDirectory, id: info.id, costUSD: cost)
+                ledger.record(project: eventDirectory, id: info.id, costUSD: cost, session: rootSession(of: info.sessionID))
             }
             var list = messages[info.sessionID] ?? []
             if let index = list.firstIndex(where: { $0.id == info.id }) {
