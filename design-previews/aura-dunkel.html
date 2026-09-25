@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppForge – Aura dunkel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000000;      /* Hintergrund */
+    --raise: #0B0B0B;      /* Flächen */
+    --lift: #141414;       /* Hover, Eingabe */
+    --hair: #1E1E1E;       /* Linien */
+    --text: #F2F2F0;
+    --soft: #8C8C8C;
+    --faint: #555555;
+    --orange: #FF8A33;     /* arbeitet · deine Aktion */
+    --green: #4CD97B;      /* fertig */
+    --aura: transparent;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--black); color: var(--text); font-family: "Geist", -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  code, pre { font-family: "Geist Mono", ui-monospace, monospace; }
+
+  .demo { display: flex; gap: 6px; justify-content: center; padding: 16px; }
+  .demo button { font: 500 12.5px "Geist"; color: var(--soft); background: none; border: 1px solid var(--hair); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+  .demo button.on { color: var(--text); border-color: #3a3a3a; }
+  .demo button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+  .stage { display: flex; justify-content: center; padding: 0 16px 40px; }
+  .win { width: 100%; max-width: 1180px; height: 780px; display: grid; grid-template-columns: 232px 1fr; background: var(--black);
+         border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; }
+
+  /* Seitenleiste */
+  .side { padding: 14px 12px; display: flex; flex-direction: column; border-right: 1px solid var(--hair); }
+  .lights { display: flex; gap: 8px; padding: 2px 6px 18px; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; background: #1f1f1f; }
+  .brand { padding: 0 10px 26px; font-weight: 500; font-size: 15px; letter-spacing: -.02em; }
+  .lbl { font-size: 11.5px; color: var(--faint); padding: 0 10px 6px; }
+  .grp { margin-bottom: 22px; }
+  .it { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; font-size: 13.5px; color: var(--soft); cursor: pointer; transition: background .2s, color .2s; }
+  .it:hover { background: var(--lift); color: var(--text); }
+  .it.on { background: var(--raise); color: var(--text); box-shadow: inset 0 0 0 1px var(--hair); }
+  .it .dot { width: 6px; height: 6px; border-radius: 50%; margin-left: auto; background: var(--orange); opacity: 0; transition: opacity .4s; }
+  body[data-state="working"] .it .dot { opacity: 1; animation: breath 2.2s ease-in-out infinite; }
+  @keyframes breath { 50% { transform: scale(1.7); opacity: .45 } }
+  .side .foot { margin-top: auto; padding: 10px; font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 8px; }
+  .side .foot i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+
+  /* Hauptbereich */
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .head { display: flex; align-items: center; gap: 12px; padding: 18px 36px 8px; }
+  .head h1 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -.01em; }
+  .head .sub { font-size: 13px; color: var(--faint); }
+  .spacer { flex: 1; }
+  .seg { display: flex; padding: 3px; border-radius: 999px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); font-size: 12px; }
+  .seg span { padding: 5px 11px; border-radius: 999px; color: var(--faint); cursor: pointer; transition: color .2s; }
+  .seg span:hover { color: var(--soft); }
+  .seg span.on { background: var(--lift); color: var(--text); }
+  .model { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--soft); padding: 6px 12px 6px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); cursor: pointer; }
+  .model b { color: var(--text); font-weight: 500; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  .col { max-width: 660px; margin: 0 auto; padding: 34px 24px 24px; }
+  .you { margin-left: auto; width: fit-content; max-width: 80%; background: var(--lift); padding: 11px 16px; border-radius: 18px; font-size: 14.5px; line-height: 1.5; margin-bottom: 34px; }
+
+  .steps { display: flex; flex-direction: column; margin-bottom: 22px; }
+  .step { display: flex; align-items: center; gap: 11px; font-size: 13px; color: var(--soft); padding: 5px 0; }
+  .step b { color: var(--text); font-weight: 500; }
+  .step code { font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step .t { margin-left: auto; font-size: 12px; color: var(--faint); }
+  .ck { width: 14px; height: 14px; flex: none; border-radius: 50%; position: relative; box-shadow: inset 0 0 0 1.5px #333; }
+  .step.ok .ck { box-shadow: none; }
+  .step.ok .ck::after { content: ""; position: absolute; left: 5px; top: 2px; width: 3.5px; height: 7px; border: solid var(--green); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+  .step.run .ck { box-shadow: none; border: 1.5px solid var(--orange); border-top-color: transparent; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .step.run b { color: var(--text); }
+  .step.run .t { color: var(--orange); }
+
+  p { font-size: 15px; line-height: 1.7; margin: 0 0 16px; color: #D9D9D6; }
+  p code { font-size: 13px; color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 22px; }
+  th { text-align: left; font-weight: 400; font-size: 12.5px; color: var(--faint); padding: 0 0 8px; }
+  td { padding: 10px 0; border-top: 1px solid var(--hair); color: #D9D9D6; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.up { color: var(--text); }
+  pre { font-size: 12.5px; line-height: 1.7; margin: 0 0 18px; padding: 14px 16px; border-radius: 14px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); color: #CFCFCB; overflow: auto; }
+  .meta { font-size: 12px; color: var(--faint); display: flex; gap: 10px; }
+  .done-note { font-size: 12px; color: var(--green); opacity: 0; transition: opacity .5s; }
+  body[data-state="done"] .done-note { opacity: 1; }
+
+  /* Freigabe */
+  .perm { max-width: 660px; width: calc(100% - 48px); margin: 0 auto 10px; display: flex; align-items: center; gap: 12px; padding: 11px 11px 11px 16px;
+          border-radius: 16px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); font-size: 13.5px; color: var(--soft);
+          transition: opacity .35s, transform .35s; }
+  .perm b { color: var(--text); font-weight: 500; }
+  .perm code { font-size: 12px; color: var(--soft); }
+  body:not([data-state="working"]) .perm { opacity: 0; transform: translateY(8px); pointer-events: none; height: 0; padding: 0; margin: 0 auto; overflow: hidden; }
+  .btn { font: 500 12.5px "Geist"; border: 0; border-radius: 999px; padding: 8px 14px; background: var(--lift); color: var(--text); cursor: pointer; transition: transform .15s, background .2s; }
+  .btn:hover { background: #1c1c1c; }
+  .btn:active { transform: scale(.96); }
+  .btn.pri { background: var(--orange); color: #000; }
+  .btn:focus-visible, .it:focus-visible, .send:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+  /* Signatur: Aura hinter dem Eingabefeld – orange beim Arbeiten, kurz grün wenn fertig */
+  .composewrap { position: relative; max-width: 660px; width: calc(100% - 48px); margin: 0 auto 22px; }
+  .composewrap::before { content: ""; position: absolute; inset: 14px 60px -10px; border-radius: 40px; filter: blur(38px);
+          background: var(--aura); opacity: 0; transition: opacity 1.2s ease, background 1.2s ease; }
+  body[data-state="working"] { --aura: radial-gradient(closest-side, var(--orange), transparent); }
+  body[data-state="working"] .composewrap::before { opacity: .5; animation: glow 3.2s ease-in-out infinite; }
+  body[data-state="done"] { --aura: radial-gradient(closest-side, var(--green), transparent); }
+  body[data-state="done"] .composewrap::before { opacity: .35; animation: settle 2.4s ease-out forwards; }
+  @keyframes glow { 50% { opacity: .28; transform: scaleX(.9) } }
+  @keyframes settle { to { opacity: 0 } }
+  .compose { position: relative; border-radius: 22px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); transition: box-shadow .3s; }
+  .compose:focus-within { box-shadow: inset 0 0 0 1px #3a3a3a; }
+  .compose textarea { display: block; width: 100%; resize: none; border: 0; outline: 0; background: transparent; color: var(--text); font: 15px/1.5 "Geist"; padding: 16px 18px 4px; height: 52px; }
+  .compose textarea::placeholder { color: var(--faint); }
+  .bar { display: flex; align-items: center; gap: 12px; padding: 6px 10px 10px 16px; font-size: 12.5px; color: var(--faint); }
+  .bar span { cursor: pointer; transition: color .2s; }
+  .bar span:hover { color: var(--soft); }
+  .send { width: 34px; height: 34px; border-radius: 50%; border: 0; margin-left: auto; background: var(--lift); color: var(--faint); font-size: 15px; cursor: pointer; transition: background .25s, color .25s, transform .15s; }
+  .send.ready { background: var(--orange); color: #000; }
+  .send:active { transform: scale(.92); }
+
+
+  /* ---------- Szenen ---------- */
+  .scene { display: none; }
+  .scene.on { display: grid; animation: sceneIn .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes sceneIn { from { opacity: 0; transform: translateY(8px) } }
+  .demo .sep { width: 1px; background: var(--hair); margin: 4px 6px; }
+  body:not([data-scene="chat"]) .demo .stateBtn { display: none; }
+  body:not([data-scene="chat"]) .demo .sep { display: none; }
+  .ico { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- Foto & Video ---------- */
+  .cmd { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font-size: 13.5px; color: var(--soft); }
+  .cmd code { color: var(--text); font-size: 12.5px; }
+  .media { position: relative; border-radius: 16px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--hair); margin-bottom: 10px; background: var(--raise); }
+  .media.sq { width: 380px; aspect-ratio: 1; }
+  .media.wide { width: 100%; aspect-ratio: 16 / 9; }
+  .media svg.art { display: block; width: 100%; height: 100%; }
+  .acts { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 2px; padding: 4px; border-radius: 999px;
+          background: rgba(0,0,0,.55); backdrop-filter: blur(14px); opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s; }
+  .media:hover .acts, .media:focus-within .acts { opacity: 1; transform: none; }
+  .vid .acts { top: 10px; bottom: auto; transform: translateY(-4px); }
+  .acts button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; color: var(--text); cursor: pointer; display: grid; place-items: center; }
+  .acts button:hover { background: rgba(255,255,255,.1); }
+  .mmeta { font-size: 12px; color: var(--faint); margin-bottom: 30px; display: flex; gap: 10px; }
+  /* laufendes Video */
+  .gen { display: grid; place-items: center; }
+  .gen::before { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.035) 50%, transparent 70%); background-size: 250% 100%; animation: sweep 2.4s linear infinite; }
+  @keyframes sweep { from { background-position: 150% 0 } to { background-position: -100% 0 } }
+  .gen .lbl2 { position: relative; text-align: center; font-size: 13px; color: var(--soft); }
+  .gen .lbl2 b { display: block; color: var(--text); font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+  .gen .prog { position: absolute; left: 0; bottom: 0; height: 2px; width: 46%; background: var(--orange); animation: prog 12s ease-in-out infinite alternate; }
+  @keyframes prog { from { width: 18% } to { width: 78% } }
+  /* fertiges Video */
+  .vid .sky { position: absolute; inset: 0; background: linear-gradient(180deg, #1a1410 0%, #3a2416 45%, #0a0706 46%, #050403 100%); }
+  .vid .sun { position: absolute; left: 50%; top: 30%; width: 90px; height: 90px; margin-left: -45px; border-radius: 50%;
+              background: radial-gradient(circle, #ffcf9a, #ff8a33 55%, transparent 72%); filter: blur(1px); animation: sink 5s ease-in-out infinite alternate; }
+  @keyframes sink { from { transform: translateY(-6px) } to { transform: translateY(22px) } }
+  .vid .shore { position: absolute; left: -10%; right: -10%; top: 46%; height: 2px; background: rgba(255,170,110,.35); filter: blur(1px); animation: drift 5s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform: translateX(3%) } }
+  .vid .ctl { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+              background: linear-gradient(transparent, rgba(0,0,0,.7)); font-size: 11.5px; color: var(--soft); font-variant-numeric: tabular-nums; }
+  .vid .bar2 { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .vid .bar2 i { display: block; height: 100%; width: 40%; background: var(--text); animation: play 5s linear infinite; }
+  @keyframes play { from { width: 0 } to { width: 100% } }
+  .slash { display: flex; gap: 6px; align-items: center; padding: 0 0 8px 14px; font-size: 12.5px; }
+  .slash .chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); color: var(--soft); cursor: pointer; }
+  .slash .chip b { color: var(--text); font-weight: 500; font-family: "Geist Mono"; font-size: 12px; }
+  .slash .chip.on { box-shadow: inset 0 0 0 1px #3a3a3a; color: var(--text); }
+  .typed { color: var(--text) !important; }
+
+  /* ---------- Simulator ---------- */
+  .scene.sim { grid-template-columns: 232px 1fr 340px; }
+  .insp { border-left: 1px solid var(--hair); padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .insp .seg { align-self: stretch; }
+  .insp .seg span { flex: 1; text-align: center; }
+  .device { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--raise); box-shadow: inset 0 0 0 1px var(--hair); font-size: 12.5px; cursor: pointer; }
+  .device i { width: 6px; height: 6px; border-radius: 50%; background: var(--text); }
+  .device span { color: var(--faint); margin-left: auto; font-size: 11.5px; }
+  .phone { position: relative; align-self: center; width: 232px; aspect-ratio: 9 / 19.5; border-radius: 40px; padding: 7px; background: #0d0d0d;
+           box-shadow: inset 0 0 0 1.5px #2a2a2a, 0 30px 60px rgba(0,0,0,.6); }
+  .screen { position: relative; height: 100%; border-radius: 33px; overflow: hidden; background: #0a0a0a; display: flex; flex-direction: column; }
+  .island { position: absolute; top: 9px; left: 50%; width: 78px; height: 22px; margin-left: -39px; border-radius: 12px; background: #000; z-index: 2; }
+  .device i { animation: breath 2s ease-in-out infinite; }
+  .app-top { height: 44%; position: relative; background: linear-gradient(160deg, #2b1c12, #0e0a08 70%); }
+  .app-top .sun { position: absolute; left: 58%; top: 34%; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #ffd2a1, #ff8a33 60%, transparent 72%); }
+  .app-top .time { position: absolute; left: 12px; bottom: 8px; font: 10px "Geist Mono"; color: #eee; }
+  .app-tl { flex: 1; position: relative; padding: 14px 10px 0; display: flex; flex-direction: column; gap: 6px; }
+  .trk { height: 30px; border-radius: 6px; display: flex; gap: 3px; }
+  .trk i { display: block; height: 100%; border-radius: 5px; background: #2a2a2a; }
+  .trk.v i { background: #3a3a3a; } .trk.a { height: 26px; } .trk.a i { background: #232323; } .trk.t { height: 20px; } .trk.t i { background: #1c1c1c; }
+  .playhead { position: absolute; top: 8px; bottom: 36px; left: 50%; width: 2px; margin-left: -1px; background: #fff; border-radius: 2px; }
+  .app-bar { height: 42px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #1a1a1a; }
+  .app-bar i { width: 18px; height: 3px; border-radius: 2px; background: #3a3a3a; }
+  .simbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .simbtns .btn { display: inline-flex; align-items: center; gap: 6px; }
+  .hint { font-size: 11.5px; color: var(--faint); text-align: center; line-height: 1.5; }
+  .shot-thumb { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .shot-thumb .mini { width: 70px; aspect-ratio: 9 / 19.5; border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--hair); background: #0a0a0a; display: flex; flex-direction: column; }
+  .shot-thumb .mini .t1 { height: 44%; background: linear-gradient(160deg, #2b1c12, #0e0a08 70%); }
+  .shot-thumb .mini .t2 { flex: 1; padding: 5px 3px; display: flex; flex-direction: column; gap: 2px; }
+  .shot-thumb .mini .t2 i { height: 7px; border-radius: 2px; background: #333; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  @media (max-width: 820px) { .win, .scene.sim { grid-template-columns: 1fr; height: auto; } .insp { border-left: 0; border-top: 1px solid var(--hair); } .media.sq { width: 100%; } .side { display: none; } .scroll { overflow: visible; } .head { flex-wrap: wrap; padding: 16px 20px 8px; } }
+</style>
+</head>
+<body data-state="working" data-scene="chat">
+
+<div class="demo" role="group" aria-label="Ansicht und Zustand wählen">
+  <button class="sceneBtn on" data-scene="chat">Chat</button>
+  <button class="sceneBtn" data-scene="media">Foto &amp; Video</button>
+  <button class="sceneBtn" data-scene="sim">Simulator</button>
+  <span class="sep"></span>
+  <button class="stateBtn" data-s="idle">Bereit</button>
+  <button class="stateBtn on" data-s="working">Arbeitet</button>
+  <button class="stateBtn" data-s="done">Fertig</button>
+</div>
+
+<div class="stage">
+  <div class="win scene on" id="scene-chat">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand">appforge</div>
+      <div class="grp"><div class="it" tabindex="0">Zentrale</div></div>
+      <div class="grp">
+        <div class="lbl">Projekte</div>
+        <div class="it on" tabindex="0">Schnitt</div>
+        <div class="it" tabindex="0">Chroma</div>
+      </div>
+      <div class="grp">
+        <div class="lbl">Chats</div>
+        <div class="it on" tabindex="0">Timeline-Spuren höher <span class="dot"></span></div>
+        <div class="it" tabindex="0">Zweck der App</div>
+        <div class="it" tabindex="0">Export-Fehler 4K</div>
+      </div>
+      <div class="foot"><i></i>Engine bereit</div>
+    </aside>
+
+    <div class="main">
+      <header class="head">
+        <h1>Timeline-Spuren höher</h1><span class="sub">Schnitt</span>
+        <div class="spacer"></div>
+        <div class="seg"><span class="on">Bauen</span><span>Planen</span></div>
+        <div class="seg"><span class="on">iPhone</span><span>iPad</span><span>Mac</span></div>
+        <div class="model">DeepSeek <b>V4.1 Flash</b></div>
+      </header>
+
+      <div class="scroll">
+        <div class="col">
+          <div class="you">Mach die Timeline-Spuren etwas höher und prüf es im Simulator.</div>
+          <div class="steps" id="steps">
+            <div class="step ok"><span class="ck"></span><b>Datei gelesen</b><code>Ansicht/Timeline.swift</code><span class="t">0,2 s</span></div>
+            <div class="step ok"><span class="ck"></span><b>Datei geändert</b><code>Kern/SpurMetrik.swift · +6 −2</code><span class="t">0,4 s</span></div>
+            <div class="step ok"><span class="ck"></span><b>Gebaut</b><code>xcodebuild -scheme Schnitt</code><span class="t">38 s</span></div>
+            <div class="step run" id="last"><span class="ck"></span><b>Simulator-Aufnahme</b><code>iPhone 17 Pro Max</code><span class="t">läuft</span></div>
+          </div>
+          <p>Die Spuren sind jetzt deutlich griffiger. Ich habe die Höhen zentral in <code>SpurMetrik</code> angepasst, damit Video, Ton und Titel im gleichen Raster bleiben.</p>
+          <table>
+            <tr><th>Spur</th><th class="num">Vorher</th><th class="num">Jetzt</th></tr>
+            <tr><td>Video</td><td class="num">32 pt</td><td class="num up">44 pt</td></tr>
+            <tr><td>Ton</td><td class="num">28 pt</td><td class="num up">40 pt</td></tr>
+            <tr><td>Titel</td><td class="num">24 pt</td><td class="num up">32 pt</td></tr>
+          </table>
+          <pre>enum SpurMetrik {
+    static let video: CGFloat = 44
+    static let ton: CGFloat = 40
+    static let titel: CGFloat = 32
+}</pre>
+          <div class="meta"><span>12 480 Tokens · $0.0021</span><span class="done-note">Fertig in 1:12</span></div>
+        </div>
+      </div>
+
+      <div class="perm"><span><b>Befehl ausführen</b> · <code>git commit -m "Spuren höher"</code></span><div class="spacer"></div><button class="btn">Ablehnen</button><button class="btn pri">Erlauben</button></div>
+
+      <div class="composewrap">
+        <div class="compose">
+          <textarea id="input" placeholder="Beschreibe, was entstehen soll …" aria-label="Nachricht"></textarea>
+          <div class="bar">
+            <span>Anhang</span><span>Freigaben: automatisch</span><span>@ Agenten</span><span>/ Befehle</span>
+            <button class="send" id="send" aria-label="Senden">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="win scene" id="scene-media">
+    <aside class="side" data-clone="side" data-active="App-Icon &amp; Trailer"></aside>
+    <div class="main">
+      <header class="head">
+        <h1>App-Icon &amp; Trailer</h1><span class="sub">Schnitt</span>
+        <div class="spacer"></div>
+        <div class="seg"><span class="on">Bauen</span><span>Planen</span></div>
+        <div class="model">Qwen <b>3.8 Max</b></div>
+      </header>
+      <div class="scroll">
+        <div class="col">
+          <div class="cmd"><code>/foto</code><span>App-Icon für eine Schnitt-App: drei Timeline-Spuren, warmes Licht, dunkel, minimalistisch</span></div>
+          <div class="media sq" tabindex="0"><svg class="art" viewBox="0 0 400 400" role="img" aria-label="Erzeugtes App-Icon: drei Timeline-Spuren mit Abspielkopf">
+  <defs>
+    <radialGradient id="bgG" cx="35%" cy="25%" r="90%"><stop offset="0" stop-color="#3a2618"/><stop offset=".6" stop-color="#140d09"/><stop offset="1" stop-color="#050404"/></radialGradient>
+    <linearGradient id="tr1" x1="0" x2="1"><stop offset="0" stop-color="#ffb070"/><stop offset="1" stop-color="#ff7a26"/></linearGradient>
+    <linearGradient id="tr2" x1="0" x2="1"><stop offset="0" stop-color="#6b4a33"/><stop offset="1" stop-color="#3b2a1e"/></linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bgG)"/>
+  <rect x="70" y="70" width="260" height="260" rx="62" fill="#0c0908" stroke="#2e2119" stroke-width="2"/>
+  <rect x="104" y="146" width="150" height="30" rx="10" fill="url(#tr1)"/>
+  <rect x="140" y="188" width="150" height="26" rx="9" fill="url(#tr2)"/>
+  <rect x="116" y="226" width="110" height="20" rx="8" fill="#2a1f18"/>
+  <rect x="198" y="122" width="4" height="148" rx="2" fill="#fff5ea"/>
+  <circle cx="200" cy="120" r="7" fill="#fff5ea"/>
+</svg><div class="acts"><button aria-label="Im Finder zeigen" title="Im Finder zeigen"><svg class="ico" viewBox="0 0 16 16"><path d="M2 4.5h4l1.2 1.5H14v7H2z"/></svg></button><button aria-label="Öffnen" title="Öffnen"><svg class="ico" viewBox="0 0 16 16"><path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V13H3V5h3.5"/></svg></button><button aria-label="Kopieren" title="Kopieren"><svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 10.5V3h7.5"/></svg></button><button aria-label="Als Anhang verwenden" title="Als Anhang verwenden"><svg class="ico" viewBox="0 0 16 16"><path d="M10.5 5 6 9.5a1.4 1.4 0 0 0 2 2L13 6.5a2.8 2.8 0 0 0-4-4L4 7.5a4.2 4.2 0 0 0 6 6L13.5 10"/></svg></button></div></div>
+          <div class="mmeta"><span>qwen-image-2.0 · 2048 × 2048 · $0.035</span></div>
+
+          <div class="cmd"><code>/video</code><span>Sonnenuntergang über dem Meer, langsamer Kameraschwenk, 5 Sekunden</span></div>
+          <div class="media wide vid" tabindex="0">
+            <div class="sky"></div><div class="sun"></div><div class="shore"></div>
+            <div class="ctl"><svg class="ico" viewBox="0 0 16 16" style="fill:currentColor;stroke:none"><path d="M5 3.5v9l7-4.5z"/></svg><span>0:02 / 0:05</span><span class="bar2"><i></i></span><svg class="ico" viewBox="0 0 16 16"><path d="M3 6.5h2.5L9 3.5v9l-3.5-3H3zM11.5 6a3 3 0 0 1 0 4"/></svg></div>
+            <div class="acts"><button aria-label="Im Finder zeigen" title="Im Finder zeigen"><svg class="ico" viewBox="0 0 16 16"><path d="M2 4.5h4l1.2 1.5H14v7H2z"/></svg></button><button aria-label="Öffnen" title="Öffnen"><svg class="ico" viewBox="0 0 16 16"><path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V13H3V5h3.5"/></svg></button><button aria-label="Kopieren" title="Kopieren"><svg class="ico" viewBox="0 0 16 16"><rect x="5" y="5" width="8" height="8" rx="1.5"/><path d="M3 10.5V3h7.5"/></svg></button><button aria-label="Als Anhang verwenden" title="Als Anhang verwenden"><svg class="ico" viewBox="0 0 16 16"><path d="M10.5 5 6 9.5a1.4 1.4 0 0 0 2 2L13 6.5a2.8 2.8 0 0 0-4-4L4 7.5a4.2 4.2 0 0 0 6 6L13.5 10"/></svg></button></div>
+          </div>
+          <div class="mmeta"><span>wan2.7-t2v · 720p · 16:9 · 5 s · $0.50</span></div>
+
+          <div class="cmd"><code>/video</code><span>Das App-Icon dreht sich langsam, Licht wandert über die Spuren</span></div>
+          <div class="media wide gen">
+            <div class="lbl2"><b>Bild wird animiert</b>1:34 · ≈ $0.50 · meist 1–5 Minuten</div>
+            <div class="prog"></div>
+          </div>
+          <div class="mmeta"><span>Du kannst währenddessen weiterschreiben.</span></div>
+        </div>
+      </div>
+      <div class="composewrap">
+        <div class="slash">
+          <span class="chip"><b>/foto</b>Bild erzeugen · ≈ $0.04</span>
+          <span class="chip on"><b>/video</b>Video erzeugen · ≈ $0.50</span>
+        </div>
+        <div class="compose">
+          <textarea aria-label="Nachricht" class="typed">/vi</textarea>
+          <div class="bar"><span>Anhang</span><span>Freigaben: automatisch</span><span>@ Agenten</span><span>/ Befehle</span><button class="send ready" aria-label="Senden">↑</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="win scene sim" id="scene-sim">
+    <aside class="side" data-clone="side" data-active="Timeline-Spuren höher"></aside>
+    <div class="main">
+      <header class="head">
+        <h1>Timeline-Spuren höher</h1><span class="sub">Schnitt</span>
+        <div class="spacer"></div>
+        <div class="model">DeepSeek <b>V4.1 Flash</b></div>
+      </header>
+      <div class="scroll">
+        <div class="col">
+          <div class="shot-thumb"><div class="mini"><div class="t1"></div><div class="t2"><i></i><i></i><i></i></div></div></div>
+          <div class="you">Hier ein Screenshot aus dem Simulator – die Tonspur überlappt noch mit dem Titel.</div>
+          <div class="steps">
+            <div class="step ok"><span class="ck"></span><b>Bild angesehen</b><code>Simulator iPhone 17 Pro Max.png</code><span class="t">1 s</span></div>
+            <div class="step ok"><span class="ck"></span><b>Datei geändert</b><code>Ansicht/Timeline.swift · +3 −1</code><span class="t">0,3 s</span></div>
+            <div class="step ok"><span class="ck"></span><b>Gebaut &amp; gestartet</b><code>iPhone 17 Pro Max</code><span class="t">41 s</span></div>
+          </div>
+          <p>Der Abstand zwischen Ton- und Titelspur ist jetzt 6 pt. Im Simulator rechts siehst du den neuen Stand live.</p>
+          <div class="meta"><span>8 920 Tokens · $0.0014</span></div>
+        </div>
+      </div>
+      <div class="composewrap">
+        <div class="compose">
+          <textarea aria-label="Nachricht" placeholder="Beschreibe, was entstehen soll …"></textarea>
+          <div class="bar"><span>Anhang</span><span>Freigaben: automatisch</span><button class="send" aria-label="Senden">↑</button></div>
+        </div>
+      </div>
+    </div>
+    <aside class="insp" aria-label="Simulator">
+      <div class="seg"><span class="on">Simulator</span><span>Änderungen</span></div>
+      <div class="device"><i></i>iPhone 17 Pro Max<span class="livetag">iOS 27 · live</span></div>
+      <div class="phone">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="app-top"><div class="sun"></div><div class="time">00:14:22</div></div>
+          <div class="app-tl">
+            <div class="trk v"><i style="width:34%"></i><i style="width:40%"></i><i style="width:22%"></i></div>
+            <div class="trk a"><i style="width:58%"></i><i style="width:38%"></i></div>
+            <div class="trk t"><i style="width:26%;margin-left:18%"></i></div>
+            <div class="playhead"></div>
+          </div>
+          <div class="app-bar"><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="simbtns">
+        <button class="btn"><svg class="ico" viewBox="0 0 16 16"><path d="M2.5 5.5h2.5l1.2-2h3.6l1.2 2h2.5v7h-11z"/><circle cx="8" cy="9" r="2.2"/></svg>In den Chat</button>
+        <button class="btn" aria-label="Hell oder dunkel"><svg class="ico" viewBox="0 0 16 16"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"/></svg></button>
+        <button class="btn" aria-label="Im Simulator öffnen"><svg class="ico" viewBox="0 0 16 16"><path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V13H3V5h3.5"/></svg></button>
+        <button class="btn" aria-label="Ausschalten"><svg class="ico" viewBox="0 0 16 16"><path d="M8 2.5v5M4.8 4.5a5 5 0 1 0 6.4 0"/></svg></button>
+      </div>
+      <div class="hint">Die KI tippt und wischt selbst. Zum eigenen Bedienen „Im Simulator öffnen“.</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  const body = document.body;
+  const last = document.getElementById('last');
+  function setState(s) {
+    body.dataset.state = s;
+    document.querySelectorAll('.demo .stateBtn').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+    const running = s === 'working';
+    last.classList.toggle('run', running);
+    last.classList.toggle('ok', !running);
+    last.querySelector('.t').textContent = running ? 'läuft' : '3 s';
+  }
+  document.querySelectorAll('.demo .stateBtn').forEach(b => b.onclick = () => setState(b.dataset.s));
+
+  // Szenen umschalten
+  function setScene(name) {
+    body.dataset.scene = name;
+    document.querySelectorAll('.demo .sceneBtn').forEach(b => b.classList.toggle('on', b.dataset.scene === name));
+    document.querySelectorAll('.scene').forEach(el => el.classList.toggle('on', el.id === 'scene-' + name));
+    // Chat: Zustände per Knopf · Foto & Video: es wird gerade ein Video erzeugt · Simulator: fertig
+    if (name === 'chat') setState('working'); else body.dataset.state = name === 'media' ? 'working' : 'idle';
+  }
+  document.querySelectorAll('.demo .sceneBtn').forEach(b => b.onclick = () => setScene(b.dataset.scene));
+
+  // Seitenleiste in die weiteren Szenen übernehmen
+  const sideHTML = document.querySelector('#scene-chat .side').innerHTML;
+  document.querySelectorAll('[data-clone="side"]').forEach(el => {
+    el.innerHTML = sideHTML;
+    const chats = el.querySelectorAll('.grp')[2].querySelectorAll('.it');
+    chats.forEach(c => c.classList.remove('on'));
+    const active = el.dataset.active;
+    if (active === 'Timeline-Spuren höher') { chats[0].classList.add('on'); }
+    else {
+      const neu = document.createElement('div');
+      neu.className = 'it on'; neu.tabIndex = 0; neu.textContent = active;
+      el.querySelectorAll('.grp')[2].insertBefore(neu, chats[0]);
+    }
+  });
+  const input = document.getElementById('input'), send = document.getElementById('send');
+  input.addEventListener('input', () => send.classList.toggle('ready', input.value.trim().length > 0));
+</script>
+</body>
+</html>

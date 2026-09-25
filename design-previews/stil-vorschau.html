@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppForge Stilvorschau</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b2b2b; font-family: -apple-system, sans-serif; min-height: 100vh; }
+  .switch { display: flex; gap: 8px; justify-content: center; padding: 18px 16px 6px; }
+  .switch button { border: 1px solid #555; background: #3a3a3a; color: #ddd; padding: 7px 16px; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .switch button.on { background: #eee; color: #111; }
+  .stage { padding: 16px; display: flex; justify-content: center; }
+  .view { display: none; width: 100%; max-width: 1080px; }
+  .view.on { display: block; }
+
+  /* ============ WINDOWS XP (Luna) ============ */
+  .xp { background: #3a6ea5 linear-gradient(180deg, #5a8fd6 0%, #2f6fcf 55%, #4d9a3a 55.1%, #3f8a2f 100%); padding: 28px; border-radius: 6px; }
+  .xp-win { color-scheme: light; font-family: Tahoma, Verdana, sans-serif; font-size: 12px; color: #000; border: 3px solid #0831d9; border-top: 0; border-radius: 8px 8px 0 0; background: #ece9d8; box-shadow: 2px 3px 12px rgba(0,0,0,.45); overflow: hidden; }
+  .xp-title { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 5px 0 8px; color: #fff; font-weight: bold; font-size: 13px; text-shadow: 1px 1px #0a1f6f;
+    background: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #06f 88%, #06f 93%, #005bff 95%, #003dd7 96%, #003dd7 100%); border-radius: 7px 7px 0 0; }
+  .xp-title .ico { width: 16px; height: 16px; border-radius: 3px; background: radial-gradient(circle at 35% 35%, #ffe07a, #f08a00); box-shadow: 0 0 0 1px #8a4a00 inset; }
+  .xp-title .sp { flex: 1; }
+  .xp-tb { width: 21px; height: 21px; border: 1px solid #fff; border-radius: 3px; display: grid; place-items: center; font: bold 12px Tahoma; color: #fff;
+    background: linear-gradient(180deg, #4f8cf7, #1c5ae6 60%, #2a66f0); box-shadow: inset 0 0 2px #0a2e9f; cursor: default; }
+  .xp-tb.close { background: linear-gradient(180deg, #e8765a, #d24520 60%, #c5391a); }
+  .xp-menu { display: flex; gap: 14px; padding: 3px 8px; border-bottom: 1px solid #c5c2b2; background: #ece9d8; }
+  .xp-menu span:first-letter { text-decoration: underline; }
+  .xp-body { display: grid; grid-template-columns: 210px 1fr; height: 560px; }
+  .xp-pane { background: linear-gradient(180deg, #7ba2e7, #6375d6); padding: 12px 10px; overflow: auto; }
+  .xp-box { background: #d6dff7; border-radius: 4px 4px 0 0; margin-bottom: 12px; overflow: hidden; }
+  .xp-box h4 { margin: 0; padding: 6px 10px; font-size: 12px; color: #215dc6; background: linear-gradient(90deg, #fff, #c6d3f7); display: flex; justify-content: space-between; }
+  .xp-box h4 i { font-style: normal; width: 17px; height: 17px; border-radius: 50%; background: #fff; border: 1px solid #7b9ce6; display: grid; place-items: center; font-size: 9px; color: #215dc6; }
+  .xp-box ul { list-style: none; margin: 0; padding: 8px 10px; }
+  .xp-box li { padding: 3px 0; color: #215dc6; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+  .xp-box li:hover { text-decoration: underline; color: #428eff; }
+  .xp-box li.sel { font-weight: bold; }
+  .xp-fold { width: 14px; height: 11px; background: linear-gradient(#ffe38a, #e8b73c); border: 1px solid #b8860b; border-radius: 1px; }
+  .xp-main { display: flex; flex-direction: column; min-width: 0; }
+  .xp-tools { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid #c5c2b2; }
+  .xp-btn { color: #000; font: 11px Tahoma; padding: 3px 10px; border: 1px solid #003c74; border-radius: 3px; background: linear-gradient(180deg, #fff, #ece9d8 85%, #d6d0c5); cursor: pointer; }
+  .xp-btn:hover { box-shadow: inset 0 0 0 2px #f8b33c; }
+  .xp-btn.go { color: #fff; font-weight: bold; border-color: #245e1c; background: linear-gradient(180deg, #5cc052, #3c9a3c 50%, #2f8a2f); }
+  .xp-btn.stop { color: #fff; font-weight: bold; border-color: #7a1e0b; background: linear-gradient(180deg, #ef7c5f, #d24520); }
+  .xp-select { font: 11px Tahoma; border: 1px solid #7f9db9; background: #fff; padding: 2px 18px 2px 4px; position: relative; }
+  .xp-chat { flex: 1; overflow: auto; background: #fff; margin: 8px; border: 1px solid #7f9db9; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .xp-user { align-self: flex-end; max-width: 70%; background: #ffffe1; border: 1px solid #000; padding: 7px 10px; border-radius: 6px; position: relative; }
+  .xp-user::after { content: ""; position: absolute; right: 14px; bottom: -8px; border: 8px solid transparent; border-top-color: #ffffe1; border-bottom: 0; }
+  .xp-group { border: 1px solid #d0d0bf; border-radius: 4px; padding: 10px 10px 8px; position: relative; margin-top: 4px; }
+  .xp-group legend, .xp-group .lg { position: absolute; top: -8px; left: 8px; background: #fff; padding: 0 4px; color: #0046d5; }
+  .xp-tool { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
+  .xp-tool .ok { color: #2f8a2f; font-weight: bold; }
+  .xp-tool code { font: 11px "Lucida Console", monospace; color: #444; }
+  .xp-table { border-collapse: collapse; width: 100%; font-size: 11px; }
+  .xp-table th { text-align: left; font-weight: normal; padding: 3px 6px; background: linear-gradient(180deg, #fff, #ebeadb); border: 1px solid #d0d0bf; border-bottom: 2px solid #c5c2b2; }
+  .xp-table td { padding: 3px 6px; border-bottom: 1px solid #f0f0f0; }
+  .xp-table tr:hover td { background: #316ac5; color: #fff; }
+  .xp-progress { width: 180px; height: 14px; border: 1px solid #7f9db9; border-radius: 3px; padding: 1px; background: #fff; overflow: hidden; position: relative; }
+  .xp-progress .run { position: absolute; top: 1px; height: 10px; width: 36px; display: flex; gap: 2px; animation: xpmarq 1.8s linear infinite; }
+  .xp-progress .run b { width: 8px; background: linear-gradient(180deg, #b6f0a6, #2fbf2f 50%, #1f9a1f); }
+  @keyframes xpmarq { from { left: -40px } to { left: 180px } }
+  .xp-balloon { background: #ffffe1; border: 1px solid #000; border-radius: 8px; padding: 8px 10px; display: flex; gap: 10px; align-items: center; margin: 0 8px; }
+  .xp-balloon .warn { width: 30px; height: 26px; background: #ffd200; clip-path: polygon(50% 0, 100% 100%, 0 100%); display: grid; place-items: end center; font-weight: bold; padding-bottom: 2px; }
+  .xp-compose { display: flex; gap: 6px; padding: 8px; }
+  .xp-compose textarea { background: #fff; color: #000; flex: 1; height: 44px; resize: none; font: 12px Tahoma; border: 1px solid #7f9db9; padding: 4px; }
+  .xp-status { display: flex; border-top: 1px solid #fff; background: #ece9d8; font-size: 11px; }
+  .xp-status span { padding: 3px 8px; border-right: 1px solid #c5c2b2; box-shadow: inset -1px 0 #fff; }
+  .xp-status span:last-child { flex: 1; border: 0; }
+
+  /* ============ TERMINAL (monochrom) ============ */
+  .term { --bg: #000; --fg: #c9c9c9; --dim: #5f5f5f; --hi: #ffffff; --amber: #e6e6e6; --red: #ffffff; --line: #1c1c1c;
+    background: #000; border-radius: 10px; padding: 0; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6); border: 1px solid #1f1f1f;
+    font: 13px/1.55 "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; color: var(--fg); position: relative; }
+  .term-bar { background: #000; color: #6a6a6a; font-size: 12px; padding: 7px 12px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); }
+  .term-bar .d { width: 11px; height: 11px; border-radius: 50%; background: #2a2a2a; }
+  .term-bar .t { flex: 1; text-align: center; margin-right: 60px; }
+  .term-screen { background: var(--bg); height: 600px; display: grid; grid-template-columns: 250px 1fr; grid-template-rows: 1fr auto; }
+  .t-side { border-right: 1px solid var(--line); padding: 10px 12px; white-space: pre; overflow: hidden; }
+  .t-dim { color: var(--dim); }
+  .t-hi { color: var(--hi); }
+  .t-amber { color: var(--hi); font-weight: 600; }
+  .t-red { color: var(--hi); }
+  .t-sel { background: var(--hi); color: #000; }
+  .t-main { padding: 10px 16px; overflow: auto; white-space: pre-wrap; display: flex; flex-direction: column; }
+  .t-main .blk { margin-bottom: 12px; }
+  .spin::before { content: "⠋"; animation: spin 0.8s steps(1) infinite; color: var(--hi); }
+  @keyframes spin { 0%{content:"⠋"} 12%{content:"⠙"} 25%{content:"⠹"} 37%{content:"⠸"} 50%{content:"⠼"} 62%{content:"⠴"} 75%{content:"⠦"} 87%{content:"⠧"} }
+  .cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--hi); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0 } }
+  .t-status { grid-column: 1 / -1; display: flex; background: #000; color: var(--dim); font-size: 12px; border-top: 1px solid var(--line); }
+  .t-status span { padding: 2px 10px; }
+  .t-status .m { background: var(--hi); color: #000; font-weight: bold; }
+  .t-status .f { flex: 1; }
+  .t-prompt { border-top: 1px solid var(--line); padding: 8px 16px; margin: 0 -16px -10px; }
+  .t-perm { border: 1px dashed #555; padding: 6px 10px; color: var(--hi); margin-bottom: 12px; }
+  .t-key { background: #2a2a2a; color: var(--hi); padding: 0 4px; }
+  .t-key.g { background: var(--hi); color: #000; }
+
+  /* ============ PAPIER ============ */
+  .paper-desk { background: #cbbfa9 radial-gradient(circle at 20% 10%, #d8cdb8, #b9ab91 70%); padding: 34px 26px; border-radius: 6px; }
+  .paper { --ink: #1f3a6b; --pencil: #5b5750; --red: #c8453a; --line: #a9c3dc;
+    color-scheme: light; position: relative; max-width: 1000px; margin: 0 auto; min-height: 640px; display: grid; grid-template-columns: 220px 1fr;
+    background: #fbf8f0; box-shadow: 0 1px 1px rgba(0,0,0,.08), 0 12px 30px rgba(60,40,10,.25), 6px 8px 0 -2px #f3eee2, 6px 8px 0 -1px rgba(0,0,0,.07);
+    font-family: "Iowan Old Style", "Palatino", Georgia, serif; color: #2b2a27; transform: rotate(-0.4deg); }
+  .paper::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 2px;
+    background-image: repeating-linear-gradient(180deg, transparent 0 31px, var(--line) 31px 32px);
+    background-position: 0 64px; opacity: .55; }
+  .paper::after { content: ""; position: absolute; top: 0; bottom: 0; left: 256px; width: 2px; background: rgba(200,69,58,.45); pointer-events: none; }
+  .hand { font-family: "Bradley Hand", "Noteworthy", "Segoe Print", "Comic Sans MS", cursive; }
+  .holes { position: absolute; left: 14px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-around; pointer-events: none; }
+  .holes i { width: 16px; height: 16px; border-radius: 50%; background: #cbbfa9; box-shadow: inset 1px 2px 3px rgba(0,0,0,.35); }
+  .p-side { position: relative; padding: 70px 18px 20px 44px; line-height: 32px; }
+  .p-side h5 { margin: 0; font: 600 11px/32px "Iowan Old Style", Georgia, serif; letter-spacing: .18em; text-transform: uppercase; color: var(--pencil); }
+  .p-side .item { font-size: 21px; color: var(--pencil); cursor: pointer; position: relative; width: fit-content; }
+  .p-side .item.sel { color: var(--ink); }
+  .p-side .item.sel::after { content: ""; position: absolute; left: -4px; right: -6px; bottom: 6px; height: 9px; background: rgba(255,214,90,.55); z-index: -1; transform: skew(-8deg) rotate(-1deg); border-radius: 3px; }
+  .p-side .add { color: #9a9387; font-size: 18px; }
+  .p-main { position: relative; padding: 24px 40px 20px 46px; line-height: 32px; display: flex; flex-direction: column; }
+  .p-head { display: flex; align-items: baseline; gap: 16px; height: 40px; }
+  .p-head h2 { margin: 0; font: 400 28px/40px "Bradley Hand", "Noteworthy", cursive; color: var(--ink); }
+  .p-date { margin-left: auto; font-size: 13px; color: var(--pencil); font-style: italic; }
+  .tag { font: 15px "Bradley Hand", cursive; border: 1.5px solid var(--pencil); border-radius: 14px 10px 13px 9px; padding: 0 10px; line-height: 24px; color: var(--pencil); transform: rotate(-1.5deg); }
+  .tag.on { border-color: var(--ink); color: var(--ink); }
+  .p-user { font-size: 23px; color: var(--ink); margin-top: 32px; }
+  .p-user::before { content: "✎ "; font-size: 16px; color: var(--pencil); }
+  .write { display: inline-block; white-space: nowrap; overflow: hidden; max-width: 100%; animation: writeIn 2.4s steps(60, end) .3s both; vertical-align: bottom; }
+  @keyframes writeIn { from { width: 0 } to { width: 100% } }
+  .p-ai { font-size: 16.5px; margin-top: 0; }
+  .p-ai b { font-weight: 600; }
+  .p-tools { font: 17px/32px "Bradley Hand", cursive; color: var(--pencil); }
+  .tick { color: #2e7d4f; font-weight: bold; }
+  .p-table { border-collapse: collapse; font-size: 15.5px; margin: 0 0 0 -2px; }
+  .p-table th { font: 600 11px/32px Georgia, serif; letter-spacing: .15em; text-transform: uppercase; color: var(--pencil); text-align: left; padding-right: 30px; }
+  .p-table td { padding-right: 30px; line-height: 32px; }
+  .p-table td:first-child { font: 19px "Bradley Hand", cursive; color: var(--ink); }
+  .underline-doodle { position: relative; }
+  .underline-doodle svg { position: absolute; left: -2px; bottom: 2px; width: calc(100% + 4px); height: 8px; overflow: visible; }
+  .underline-doodle path { stroke: var(--red); stroke-width: 2; fill: none; stroke-dasharray: 300; stroke-dashoffset: 300; animation: draw 1.2s ease-out 1s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0 } }
+  .sticky { position: absolute; right: 26px; top: 250px; width: 190px; padding: 18px 16px 14px; background: #fff27a; box-shadow: 2px 6px 12px rgba(80,60,0,.25);
+    font: 17px/1.35 "Bradley Hand", cursive; color: #3b3413; transform: rotate(3deg); animation: sway 5s ease-in-out infinite; z-index: 2; }
+  .sticky::before { content: ""; position: absolute; top: -12px; left: 50%; width: 80px; height: 24px; margin-left: -40px; background: rgba(230,225,200,.7); transform: rotate(-4deg); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+  @keyframes sway { 50% { transform: rotate(1.5deg) translateY(2px) } }
+  .sticky .btns { display: flex; gap: 10px; margin-top: 10px; }
+  .sticky .btns span { border: 1.5px solid #3b3413; border-radius: 10px 14px 9px 13px; padding: 0 8px; cursor: pointer; }
+  .sticky .btns span:hover { background: rgba(255,255,255,.45); }
+  .thinking { font: 18px "Bradley Hand", cursive; color: var(--pencil); }
+  .thinking i { display: inline-block; animation: dot 1.2s infinite; font-style: normal; }
+  .thinking i:nth-child(2) { animation-delay: .2s } .thinking i:nth-child(3) { animation-delay: .4s }
+  @keyframes dot { 0%,100% { opacity: .2; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-3px) } }
+  .p-compose { margin-top: auto; padding-top: 32px; display: flex; align-items: flex-end; gap: 14px; }
+  .p-compose .line { flex: 1; font: 23px/32px "Bradley Hand", cursive; color: var(--ink); border-bottom: 2px solid var(--ink); min-height: 34px; }
+  .p-compose .line::after { content: "|"; color: var(--ink); animation: blink 1s steps(1) infinite; margin-left: 2px; }
+  .p-compose .hint { font-size: 12px; font-style: italic; color: #9a9387; }
+  .stamp { font: 700 13px/1 Georgia, serif; letter-spacing: .12em; text-transform: uppercase; color: var(--red); border: 2.5px solid var(--red); border-radius: 6px; padding: 8px 12px;
+    transform: rotate(-8deg); opacity: .8; cursor: pointer; mix-blend-mode: multiply; transition: transform .15s; }
+  .stamp:hover { transform: rotate(-8deg) scale(1.06); }
+  .stamp:active { transform: rotate(-8deg) scale(.94); }
+  .p-foot { position: absolute; bottom: 8px; right: 30px; font: 12px Georgia, serif; font-style: italic; color: #9a9387; }
+
+  @media (max-width: 760px) {
+    .paper { grid-template-columns: 1fr; transform: none; }
+    .p-side, .holes, .paper::after { display: none; }
+    .sticky { position: static; transform: none; margin: 20px 0; animation: none; }
+    .p-main { padding: 20px; }
+    .write { white-space: normal; animation: none; }
+    .xp-body { grid-template-columns: 1fr; height: auto; }
+    .xp-pane { display: none; }
+    .term-screen { grid-template-columns: 1fr; height: auto; }
+    .t-side { display: none; }
+    .xp { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="switch">
+  <button class="on" data-v="xp">Windows XP</button>
+  <button data-v="term">Terminal</button>
+  <button data-v="paper">Papier</button>
+</div>
+
+<div class="stage">
+  <!-- ======================= WINDOWS XP ======================= -->
+  <div class="view on" id="xp">
+    <div class="xp">
+      <div class="xp-win">
+        <div class="xp-title"><div class="ico"></div>AppForge – Schnitt<div class="sp"></div>
+          <div class="xp-tb">_</div><div class="xp-tb">□</div><div class="xp-tb close">✕</div></div>
+        <div class="xp-menu"><span>Datei</span><span>Bearbeiten</span><span>Ansicht</span><span>Engine</span><span>Extras</span><span>?</span></div>
+        <div class="xp-body">
+          <div class="xp-pane">
+            <div class="xp-box"><h4>Projekte <i>▲</i></h4>
+              <ul><li class="sel"><span class="xp-fold"></span>Schnitt</li><li><span class="xp-fold"></span>Chroma</li><li>➕ Projekt hinzufügen…</li></ul></div>
+            <div class="xp-box"><h4>Chats <i>▲</i></h4>
+              <ul><li class="sel">💬 Zweck der iOS-App klären</li><li>💬 Timeline-Bug</li><li>📝 Neuer Chat</li></ul></div>
+            <div class="xp-box"><h4>Engine <i>▲</i></h4>
+              <ul style="color:#000"><li style="color:#000">🟢 OpenCode läuft</li><li style="color:#000">🔨 Xcode verbunden</li><li>⚙️ Einstellungen…</li></ul></div>
+          </div>
+          <div class="xp-main">
+            <div class="xp-tools">
+              <button class="xp-btn">◀ Zurück</button>
+              Plattform: <span class="xp-select">📱 iPhone ▾</span>
+              Modell: <span class="xp-select">DeepSeek V4.1 Flash ▾</span>
+            </div>
+            <div class="xp-chat">
+              <div class="xp-user">Wozu ist die App gedacht? Gib mir einen Überblick.</div>
+              <div class="xp-group"><span class="lg">Werkzeuge</span>
+                <div class="xp-tool"><span class="ok">✔</span> Datei lesen <code>Schnitt/Ansicht/Wurzel.swift</code></div>
+                <div class="xp-tool"><span class="ok">✔</span> Terminal <code>xcodebuild -scheme Schnitt build</code></div>
+                <div class="xp-tool">⏳ Code durchsuchen <code>Sprachmodelle|onnx</code></div>
+              </div>
+              <div><b>Der Aufbau</b> – sechs Bereiche, in der Reihenfolge, in der man arbeitet:</div>
+              <table class="xp-table">
+                <tr><th>Bereich</th><th>Was er tut</th></tr>
+                <tr><td>Kamera</td><td>Eigener Sucher mit LUTs, manuelle Einstellungen</td></tr>
+                <tr><td>Schnitt</td><td>Timeline mit 6 Video- und 6 Tonspuren</td></tr>
+                <tr><td>Farbe</td><td>Farbkorrektur, LUTs, Kurven, Masken</td></tr>
+                <tr><td>Export</td><td>9:16 / 16:9 / 1:1, 4K H.264</td></tr>
+              </table>
+              <div style="display:flex;gap:10px;align-items:center;color:#555">AppForge denkt nach… <div class="xp-progress"><div class="run"><b></b><b></b><b></b></div></div></div>
+            </div>
+            <div class="xp-balloon"><div class="warn">!</div><div style="flex:1"><b>Freigabe erforderlich</b><br>Die KI möchte die Datei <code>Kern/Sprechdauer.swift</code> bearbeiten.</div>
+              <button class="xp-btn">Ablehnen</button><button class="xp-btn go">Zulassen</button></div>
+            <div class="xp-compose"><textarea placeholder="Beschreiben Sie, was entstehen soll…"></textarea>
+              <div style="display:flex;flex-direction:column;gap:4px"><button class="xp-btn go">Senden ▶</button><button class="xp-btn stop">Stopp</button></div></div>
+          </div>
+        </div>
+        <div class="xp-status"><span>Bereit</span><span>deepseek/deepseek-flash</span><span>826 Tokens · 0,0009 $</span><span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= TERMINAL ======================= -->
+  <div class="view" id="term">
+    <div class="term">
+      <div class="term-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="t">appforge — schnitt — 120×38</span></div>
+      <div class="term-screen">
+<div class="t-side"><span class="t-hi">┌─ APPFORGE ─────────────┐</span>
+<span class="t-dim">│</span>
+<span class="t-dim">│ PROJEKTE</span>
+<span class="t-dim">│</span> <span class="t-sel"> ▸ schnitt            </span>
+<span class="t-dim">│</span>   chroma
+<span class="t-dim">│</span>   <span class="t-dim">+ hinzufügen   [a]</span>
+<span class="t-dim">│</span>
+<span class="t-dim">│ CHATS</span>
+<span class="t-dim">│</span> <span class="t-sel"> ● zweck-der-app       </span>
+<span class="t-dim">│</span>   ○ timeline-bug
+<span class="t-dim">│</span>   <span class="t-dim">+ neu          [n]</span>
+<span class="t-dim">│</span>
+<span class="t-dim">│ ENGINE</span>
+<span class="t-dim">│</span>   opencode  <span>[ok]</span>
+<span class="t-dim">│</span>   xcode     <span>[ok]</span>
+<span class="t-dim">│</span>   xcbuild   <span class="t-amber">[..]</span>
+<span class="t-dim">│</span>
+<span class="t-dim">│ SKILLS  7 apple · 18 user</span>
+<span class="t-hi">└────────────────────────┘</span></div>
+<div class="t-main"><div class="blk"><span class="t-amber">you ❯</span> <span class="t-hi">Wozu ist die App gedacht? Gib mir einen Überblick.</span></div><div class="blk"><span class="t-dim">[✓] read   Schnitt/Ansicht/Wurzel.swift              0.1s
+[✓] bash   xcodebuild -scheme Schnitt build          BUILD SUCCEEDED
+</span><span class="spin"></span> <span class="t-dim">grep   Sprachmodelle|onnx|OmniVoice</span></div><div class="blk"><span class="t-hi">DER AUFBAU</span> – sechs Bereiche, in Arbeitsreihenfolge:
+
+<span class="t-dim">┌──────────┬──────────────────────────────────────────┐</span>
+<span class="t-dim">│</span> <span class="t-hi">Bereich</span>  <span class="t-dim">│</span> <span class="t-hi">Was er tut</span>                               <span class="t-dim">│</span>
+<span class="t-dim">├──────────┼──────────────────────────────────────────┤</span>
+<span class="t-dim">│</span> Kamera   <span class="t-dim">│</span> Sucher mit LUTs, manuelle Einstellungen  <span class="t-dim">│</span>
+<span class="t-dim">│</span> Schnitt  <span class="t-dim">│</span> Timeline, 6 Video- + 6 Tonspuren         <span class="t-dim">│</span>
+<span class="t-dim">│</span> Farbe    <span class="t-dim">│</span> Farbkorrektur, Kurven, Masken            <span class="t-dim">│</span>
+<span class="t-dim">│</span> Export   <span class="t-dim">│</span> 9:16 / 16:9 / 1:1, 4K H.264              <span class="t-dim">│</span>
+<span class="t-dim">└──────────┴──────────────────────────────────────────┘</span>
+<span class="t-dim">deepseek/deepseek-flash · 826 tok · $0.0009</span></div><div class="t-perm">⚠ FREIGABE  edit → Kern/Sprechdauer.swift
+  <span class="t-key g">y</span> erlauben   <span class="t-key">a</span> immer   <span class="t-key">n</span> ablehnen</div><div style="flex:1"></div><div class="t-prompt"><span class="t-amber">you ❯</span> <span class="t-hi">Mach die Timeline-Spuren etwas höher</span><span class="cursor"></span>
+<span class="t-dim">↩ senden · ⇧↩ zeile · ⌘↩ unterbrechen · ^P plattform · ^M modell</span></div></div>
+<div class="t-status"><span class="m"> NORMAL </span><span>ios</span><span>deepseek-v4.1-flash</span><span class="f"></span><span class="spin"></span><span> arbeitet </span><span>18:24</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= PAPIER ======================= -->
+  <div class="view" id="paper">
+    <div class="paper-desk">
+      <div class="paper">
+        <div class="holes"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="p-side hand">
+          <h5>Projekte</h5>
+          <div class="item sel">Schnitt</div>
+          <div class="item">Chroma</div>
+          <div class="add">+ neues Projekt</div>
+          <div>&nbsp;</div>
+          <h5>Notizen</h5>
+          <div class="item sel">Zweck der App</div>
+          <div class="item">Timeline-Bug</div>
+          <div class="add">+ neue Seite</div>
+        </div>
+        <div class="p-main">
+          <div class="p-head">
+            <h2>Zweck der App</h2>
+            <span class="tag on">iPhone</span><span class="tag">iPad</span><span class="tag">Mac</span>
+            <span class="p-date">25. September · DeepSeek</span>
+          </div>
+
+          <div class="p-user hand"><span class="write">Wozu ist die App gedacht? Gib mir einen Überblick.</span></div>
+
+          <div class="p-tools"><span class="tick">✓</span> Datei gelesen – Wurzel.swift &nbsp; <span class="tick">✓</span> gebaut &nbsp; <span class="thinking">✎ suche weiter<i>.</i><i>.</i><i>.</i></span></div>
+
+          <div class="p-ai"><b class="underline-doodle">Der Aufbau<svg viewBox="0 0 100 8" preserveAspectRatio="none"><path d="M0 5 C 20 1, 40 8, 60 4 S 90 2, 100 5"/></svg></b> – sechs Bereiche, in der Reihenfolge, in der man arbeitet:</div>
+          <table class="p-table">
+            <tr><th>Bereich</th><th>Was er tut</th></tr>
+            <tr><td>Kamera</td><td>Eigener Sucher mit LUTs, manuelle Einstellungen</td></tr>
+            <tr><td>Schnitt</td><td>Timeline mit 6 Video- und 6 Tonspuren</td></tr>
+            <tr><td>Farbe</td><td>Farbkorrektur, Kurven, Masken</td></tr>
+            <tr><td>Export</td><td>9:16 / 16:9 / 1:1 in 4K</td></tr>
+          </table>
+          <div class="p-ai">Kurz: ein radikal reduziertes, aber technisch tiefes Schnittprogramm fürs iPhone.</div>
+
+          <div class="p-compose">
+            <div style="flex:1">
+              <div class="line">Mach die Timeline-Spuren etwas höher</div>
+              <div class="hint">↩ abschicken · ⇧↩ neue Zeile · ⌘↩ dazwischenrufen</div>
+            </div>
+            <div class="stamp">Abschicken</div>
+          </div>
+        </div>
+
+        <div class="sticky">
+          Darf ich <u>Sprechdauer.swift</u> ändern?
+          <div class="btns"><span>ja</span><span>immer</span><span>nein</span></div>
+        </div>
+        <div class="p-foot">– Seite 3 –</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.switch button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.switch button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === b.dataset.v));
+  });
+</script>
+</body>
+</html>

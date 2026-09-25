@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppForge – vier minimalistische Richtungen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Archivo+Narrow:wght@500;600&family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1b1b1c; font-family: -apple-system, sans-serif; color: #eee; }
+  .switch { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 14px 16px; background: rgba(27,27,28,.85); backdrop-filter: blur(12px); }
+  .switch button { font: 500 12.5px/1 -apple-system, sans-serif; border: 1px solid #3a3a3c; background: transparent; color: #bbb; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+  .switch button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .switch button.on { background: #f2f2f2; color: #111; border-color: #f2f2f2; }
+  .switch small { opacity: .6; margin-left: 4px; }
+  .stage { padding: 8px 16px 40px; display: flex; justify-content: center; }
+  .view { display: none; width: 100%; max-width: 1180px; }
+  .view.on { display: block; animation: rise .5s cubic-bezier(.2,.8,.2,1); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px) } }
+  .note { max-width: 1180px; margin: 0 auto; padding: 0 16px 14px; color: #9a9a9e; font-size: 13px; line-height: 1.5; }
+  .note b { color: #eee; font-weight: 600; }
+  .win { display: grid; grid-template-columns: 236px 1fr; height: 760px; overflow: hidden; border-radius: 12px; }
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  .main { min-height: 0; }
+  .lights { display: flex; gap: 8px; padding: 14px 16px 0; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  @media (max-width: 820px) { .win { grid-template-columns: 1fr; height: auto; } .side { display: none; } .scroll { overflow: visible; } }
+
+  /* =====================================================================
+     A · REISSBRETT — technische Zeichnung, Kobalt-Tusche
+     ===================================================================== */
+  .A { --paper: #EEF0EE; --sheet: #F7F8F6; --graphite: #1C1F1E; --pencil: #5E6461; --line: #C8CDC9; --faint: #DDE1DD; --ink: #2445D8;
+       font-family: "IBM Plex Sans", sans-serif; color: var(--graphite); background: var(--paper); border: 1px solid var(--line); }
+  .A .lights i { background: var(--line); }
+  .A .side { background: var(--paper); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .A .brand { padding: 18px 18px 22px; font: 600 13px "IBM Plex Sans Condensed"; letter-spacing: .02em; display: flex; align-items: baseline; gap: 8px; }
+  .A .brand span { font: 400 10px "IBM Plex Mono"; color: var(--pencil); }
+  .A .grp { padding: 0 10px 18px; }
+  .A .lbl { font: 500 10px "IBM Plex Mono"; color: var(--pencil); padding: 0 8px 6px; display: flex; justify-content: space-between; }
+  .A .it { padding: 6px 8px; font-size: 13px; color: var(--pencil); border-left: 1px solid transparent; cursor: pointer; transition: color .15s; }
+  .A .it:hover { color: var(--graphite); }
+  .A .it.on { color: var(--graphite); border-left-color: var(--ink); background: var(--sheet); }
+  .A .it .mk { font: 10px "IBM Plex Mono"; color: var(--ink); float: right; }
+  .A .main { background: var(--sheet); }
+  .A .head { display: flex; align-items: center; gap: 18px; padding: 16px 28px 12px; border-bottom: 1px solid var(--line); position: relative; }
+  .A .head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 6px;
+       background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 24px); opacity: .9; }
+  .A .head h1 { margin: 0; font: 600 17px "IBM Plex Sans Condensed"; }
+  .A .head .sub { font: 11px "IBM Plex Mono"; color: var(--pencil); }
+  .A .spacer { flex: 1; }
+  .A .field { font: 11.5px "IBM Plex Mono"; color: var(--pencil); display: flex; flex-direction: column; gap: 2px; }
+  .A .field b { font: 500 12.5px "IBM Plex Sans"; color: var(--graphite); }
+  .A .sheetgrid { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 0; padding: 26px 0 10px 28px; }
+  .A .col { padding-right: 36px; }
+  .A .you { font-size: 14.5px; line-height: 1.6; padding: 0 0 18px; border-bottom: 1px dashed var(--line); margin-bottom: 22px; }
+  .A .you::before { content: "AUFTRAG"; display: block; font: 500 10px "IBM Plex Mono"; color: var(--pencil); margin-bottom: 4px; }
+  .A p { font-size: 14px; line-height: 1.65; margin: 0 0 14px; }
+  .A table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 18px; }
+  .A th { font: 500 10px "IBM Plex Mono"; color: var(--pencil); text-align: left; padding: 6px 0; border-bottom: 1px solid var(--graphite); }
+  .A td { padding: 7px 0; border-bottom: 1px solid var(--faint); }
+  .A td.num { font-family: "IBM Plex Mono"; text-align: right; } .A th.num { text-align: right; }
+  .A pre { font: 12px/1.6 "IBM Plex Mono"; margin: 0 0 18px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); overflow: auto; }
+  .A .meta { font: 10.5px "IBM Plex Mono"; color: var(--pencil); }
+  /* Signatur: Randnotizen mit Bezugslinien */
+  .A .margin { border-left: 1px solid var(--line); padding: 0 20px; position: relative; }
+  .A .ann { position: relative; padding: 0 0 18px 0; }
+  .A .ann::before { content: ""; position: absolute; left: -58px; top: 9px; width: 50px; border-top: 1px solid var(--ink); opacity: .5; }
+  .A .ann::after { content: ""; position: absolute; left: -61px; top: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--ink); opacity: .7; }
+  .A .ann .t { font: 500 12px "IBM Plex Sans"; }
+  .A .ann .d { font: 10.5px/1.5 "IBM Plex Mono"; color: var(--pencil); word-break: break-all; }
+  .A .ann .s { font: 10px "IBM Plex Mono"; color: var(--ink); }
+  .A .ann.run .s::after { content: "▍"; animation: blinkA 1s steps(1) infinite; }
+  @keyframes blinkA { 50% { opacity: 0 } }
+  .A .perm { margin: 0 28px 12px; padding: 12px 14px; border: 1px solid var(--ink); display: flex; align-items: center; gap: 14px; font-size: 13px; background: #fff; }
+  .A .perm code { font: 12px "IBM Plex Mono"; }
+  .A .btn { font: 500 12px "IBM Plex Sans"; padding: 7px 12px; border: 1px solid var(--graphite); background: transparent; color: var(--graphite); cursor: pointer; }
+  .A .btn.pri { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .A .btn:focus-visible, .A .it:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .A .compose { margin: 0 28px 20px; border: 1px solid var(--graphite); background: #fff; }
+  .A .compose .in { padding: 14px 16px; font-size: 14px; color: var(--pencil); min-height: 50px; }
+  .A .compose .bar { display: flex; gap: 16px; align-items: center; padding: 8px 12px 8px 16px; border-top: 1px solid var(--faint); font: 10.5px "IBM Plex Mono"; color: var(--pencil); }
+
+  /* =====================================================================
+     B · AURA — Farbe gehört dem Modell
+     ===================================================================== */
+  .B { --bg: #F7F7F5; --card: #FFFFFF; --text: #161618; --soft: #8B8B90; --hair: #ECECEA;
+       --aura: #5B6CFF; --aura2: #9B7BFF; /* DeepSeek */
+       font-family: "Geist", sans-serif; color: var(--text); background: var(--bg); }
+  .B .lights i { background: #dcdcda; }
+  .B .side { padding: 6px 12px; display: flex; flex-direction: column; }
+  .B .brand { padding: 14px 10px 26px; font: 500 15px "Geist"; letter-spacing: -.02em; }
+  .B .lbl { font: 400 11.5px "Geist"; color: var(--soft); padding: 0 10px 6px; }
+  .B .it { padding: 8px 10px; border-radius: 10px; font-size: 13.5px; color: #4a4a4e; cursor: pointer; transition: background .2s; display: flex; align-items: center; gap: 8px; }
+  .B .it:hover { background: #EFEFED; }
+  .B .it.on { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 0 0 1px var(--hair); }
+  .B .it .dot { width: 6px; height: 6px; border-radius: 50%; margin-left: auto; background: linear-gradient(135deg, var(--aura), var(--aura2)); animation: breath 2.4s ease-in-out infinite; }
+  @keyframes breath { 50% { transform: scale(1.6); opacity: .5 } }
+  .B .grp { margin-bottom: 22px; }
+  .B .main { position: relative; }
+  .B .head { display: flex; align-items: center; gap: 12px; padding: 18px 40px 6px; }
+  .B .head h1 { margin: 0; font: 500 15px "Geist"; letter-spacing: -.01em; }
+  .B .head .sub { color: var(--soft); font-size: 13px; }
+  .B .spacer { flex: 1; }
+  .B .seg { display: flex; background: #EEEEEC; border-radius: 999px; padding: 3px; font-size: 12px; }
+  .B .seg span { padding: 5px 11px; border-radius: 999px; color: var(--soft); cursor: pointer; }
+  .B .seg span.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .B .col { max-width: 660px; margin: 0 auto; padding: 36px 24px 20px; }
+  .B .you { margin-left: auto; width: fit-content; max-width: 80%; background: #EDEDEB; padding: 11px 16px; border-radius: 18px; font-size: 14.5px; line-height: 1.5; margin-bottom: 34px; }
+  .B .who { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12.5px; color: var(--soft); }
+  .B .orb { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, var(--aura) 45%, var(--aura2)); box-shadow: 0 0 18px var(--aura); }
+  .B .steps { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+  .B .step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--soft); padding: 5px 0; }
+  .B .step b { color: var(--text); font-weight: 500; }
+  .B .step code { font: 12px "Geist Mono"; color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .B .step .ck { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #c9c9cc; flex: none; position: relative; }
+  .B .step.ok .ck { border-color: var(--text); background: var(--text); }
+  .B .step.ok .ck::after { content: ""; position: absolute; left: 4px; top: 1.5px; width: 3px; height: 6px; border: solid #fff; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .B .step.run .ck { border-color: var(--aura); border-top-color: transparent; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .B p { font-size: 15px; line-height: 1.7; margin: 0 0 16px; }
+  .B table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 20px; }
+  .B th { text-align: left; font-weight: 400; color: var(--soft); font-size: 12.5px; padding: 0 0 8px; }
+  .B td { padding: 10px 0; border-top: 1px solid var(--hair); }
+  .B td.num, .B th.num { text-align: right; font-family: "Geist Mono"; font-size: 13px; }
+  .B pre { font: 12.5px/1.65 "Geist Mono"; background: var(--card); border-radius: 14px; padding: 14px 16px; box-shadow: 0 0 0 1px var(--hair); margin: 0 0 18px; overflow: auto; }
+  .B .meta { font-size: 12px; color: var(--soft); }
+  .B .perm { max-width: 660px; margin: 0 auto 10px; width: calc(100% - 48px); background: var(--card); border-radius: 16px; padding: 12px 12px 12px 16px; display: flex; align-items: center; gap: 12px; font-size: 13.5px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 0 0 1px var(--hair); }
+  .B .perm code { font: 12px "Geist Mono"; color: var(--soft); }
+  .B .btn { font: 500 12.5px "Geist"; border: 0; border-radius: 999px; padding: 8px 14px; background: #EFEFED; color: var(--text); cursor: pointer; transition: transform .15s; }
+  .B .btn:active { transform: scale(.96); }
+  .B .btn.pri { background: var(--text); color: #fff; }
+  .B .btn:focus-visible, .B .it:focus-visible { outline: 2px solid var(--aura); outline-offset: 2px; }
+  /* Signatur: Modell-Aura hinter dem Eingabefeld */
+  .B .composewrap { position: relative; max-width: 660px; width: calc(100% - 48px); margin: 0 auto 22px; }
+  .B .composewrap::before { content: ""; position: absolute; inset: 10px 40px -14px; border-radius: 40px; filter: blur(34px); opacity: .45;
+       background: linear-gradient(90deg, var(--aura), var(--aura2)); animation: aura 6s ease-in-out infinite; }
+  @keyframes aura { 50% { opacity: .28; transform: scaleX(.92) } }
+  .B .compose { position: relative; background: var(--card); border-radius: 22px; box-shadow: 0 0 0 1px var(--hair), 0 8px 30px rgba(0,0,0,.06); }
+  .B .compose .in { padding: 16px 18px 6px; font-size: 15px; color: var(--soft); }
+  .B .compose .bar { display: flex; align-items: center; gap: 10px; padding: 8px 10px 10px 14px; font-size: 12.5px; color: var(--soft); }
+  .B .model { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; background: #F4F4F2; border-radius: 999px; color: var(--text); cursor: pointer; }
+  .B .model .orb { width: 14px; height: 14px; box-shadow: none; }
+  .B .send { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--text); color: #fff; margin-left: auto; cursor: pointer; font-size: 15px; }
+  .B .palette { display: flex; gap: 6px; }
+  .B .palette button { width: 14px; height: 14px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; }
+
+  /* =====================================================================
+     C · INSTRUMENT — Aluminium, Schalter, Messskala
+     ===================================================================== */
+  .C { --alu: #E3E2DE; --panel: #F1F0EC; --plate: #FBFAF7; --dark: #232323; --grey: #77756F; --rule: #CFCDC7; --led: #46A35A; --sig: #E8630A;
+       font-family: "Archivo", sans-serif; color: var(--dark); background: var(--alu); border-radius: 14px; }
+  .C .lights i { background: #c9c7c1; box-shadow: inset 0 1px 1px rgba(0,0,0,.15); }
+  .C .side { background: var(--alu); padding: 4px 10px; display: flex; flex-direction: column; }
+  .C .brand { padding: 16px 10px 22px; font: 600 12px "Archivo Narrow"; letter-spacing: .14em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .C .brand .led { width: 7px; height: 7px; border-radius: 50%; background: var(--led); box-shadow: 0 0 6px var(--led); }
+  .C .lbl { font: 600 10px "Archivo Narrow"; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); padding: 0 10px 6px; }
+  .C .grp { margin-bottom: 20px; }
+  .C .it { display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 13px; border-radius: 6px; cursor: pointer; color: #444; }
+  .C .it.on { background: var(--plate); box-shadow: 0 1px 0 #fff inset, 0 1px 2px rgba(0,0,0,.12); color: var(--dark); }
+  .C .it .l { width: 6px; height: 6px; border-radius: 50%; background: #bdbbb5; margin-left: auto; }
+  .C .it .l.on { background: var(--sig); box-shadow: 0 0 6px var(--sig); animation: ledC 1s ease-in-out infinite; }
+  @keyframes ledC { 50% { opacity: .35 } }
+  .C .main { background: var(--panel); margin: 8px 8px 8px 0; border-radius: 10px; box-shadow: 0 1px 0 #fff inset, 0 1px 3px rgba(0,0,0,.1); }
+  .C .head { display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid var(--rule); }
+  .C .head h1 { margin: 0; font: 600 15px "Archivo"; }
+  .C .head .sub { font: 600 10px "Archivo Narrow"; letter-spacing: .12em; text-transform: uppercase; color: var(--grey); }
+  .C .spacer { flex: 1; }
+  /* Signatur: Schiebeschalter */
+  .C .slider { display: flex; flex-direction: column; gap: 4px; }
+  .C .slider .cap { font: 600 9px "Archivo Narrow"; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); }
+  .C .track { position: relative; display: grid; grid-template-columns: repeat(3, 44px); background: #D8D6D0; border-radius: 6px; padding: 3px; box-shadow: inset 0 1px 3px rgba(0,0,0,.18); }
+  .C .track span { position: relative; z-index: 1; text-align: center; font: 600 10.5px "Archivo Narrow"; letter-spacing: .06em; text-transform: uppercase; padding: 5px 0; color: var(--grey); cursor: pointer; }
+  .C .track span.on { color: var(--dark); }
+  .C .track .knob { position: absolute; top: 3px; left: 3px; width: 44px; bottom: 3px; border-radius: 4px; background: linear-gradient(#fff, #EDEBE6); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
+  .C .model { display: flex; flex-direction: column; gap: 4px; }
+  .C .model b { font: 500 12.5px "Archivo"; padding: 6px 10px; background: var(--plate); border-radius: 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
+  .C .body { display: grid; grid-template-columns: minmax(0,1fr) 190px; }
+  .C .col { padding: 24px 26px; }
+  .C .you { background: var(--dark); color: #F4F3EF; padding: 12px 16px; border-radius: 8px; font-size: 14px; line-height: 1.55; margin: 0 0 22px auto; width: fit-content; max-width: 80%; }
+  .C .steps { margin-bottom: 18px; border-top: 1px solid var(--rule); }
+  .C .step { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .C .step .l { width: 7px; height: 7px; border-radius: 50%; background: var(--led); box-shadow: 0 0 5px var(--led); }
+  .C .step.run .l { background: var(--sig); box-shadow: 0 0 6px var(--sig); animation: ledC .8s ease-in-out infinite; }
+  .C .step code { font: 11.5px "JetBrains Mono"; color: var(--grey); }
+  .C .step .t { font: 500 11px "Archivo Narrow"; color: var(--grey); letter-spacing: .04em; }
+  .C p { font-size: 14px; line-height: 1.65; margin: 0 0 14px; }
+  .C table { width: 100%; border-collapse: collapse; margin: 4px 0 18px; font-size: 13px; background: var(--plate); border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--rule); }
+  .C th { font: 600 10px "Archivo Narrow"; letter-spacing: .12em; text-transform: uppercase; color: var(--grey); text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+  .C td { padding: 8px 12px; border-bottom: 1px solid #EAE8E3; }
+  .C td.num, .C th.num { text-align: right; font-family: "JetBrains Mono"; }
+  .C pre { font: 12px/1.6 "JetBrains Mono"; background: var(--dark); color: #E9E7E1; padding: 12px 14px; border-radius: 8px; margin: 0 0 16px; overflow: auto; }
+  .C .meta { font: 500 10.5px "Archivo Narrow"; letter-spacing: .06em; color: var(--grey); }
+  /* Signatur: Messinstrumente */
+  .C .gauges { border-left: 1px solid var(--rule); padding: 24px 18px; display: flex; flex-direction: column; gap: 26px; }
+  .C .gauge .cap { font: 600 9.5px "Archivo Narrow"; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); display: flex; justify-content: space-between; }
+  .C .gauge .val { font: 500 22px "Archivo"; letter-spacing: -.02em; margin: 4px 0 8px; }
+  .C .scale { position: relative; height: 22px; background: repeating-linear-gradient(90deg, #9d9b95 0 1px, transparent 1px 10%); }
+  .C .scale::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: #9d9b95; }
+  .C .needle { position: absolute; bottom: 0; width: 2px; height: 26px; background: var(--sig); transition: left 1s cubic-bezier(.3,1.3,.5,1); }
+  .C .perm { margin: 0 22px 10px; padding: 10px 12px 10px 14px; background: var(--plate); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--rule); display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .C .perm code { font: 11.5px "JetBrains Mono"; color: var(--grey); }
+  .C .key { font: 600 11px "Archivo Narrow"; letter-spacing: .08em; text-transform: uppercase; padding: 8px 12px; border-radius: 6px; border: 0; cursor: pointer; background: linear-gradient(#fff, #E8E6E0); box-shadow: 0 1px 2px rgba(0,0,0,.25), 0 1px 0 #fff inset; color: var(--dark); transition: transform .1s, box-shadow .1s; }
+  .C .key:active { transform: translateY(1px); box-shadow: 0 0 1px rgba(0,0,0,.3); }
+  .C .key.sig { background: linear-gradient(#F07A26, #D95806); color: #fff; }
+  .C .key:focus-visible, .C .it:focus-visible { outline: 2px solid var(--sig); outline-offset: 2px; }
+  .C .compose { margin: 0 22px 18px; background: var(--plate); border-radius: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,.14); display: flex; align-items: flex-end; gap: 10px; padding: 10px; }
+  .C .compose .in { flex: 1; padding: 6px 6px 8px; font-size: 14px; color: var(--grey); }
+  .C .round { width: 40px; height: 40px; border-radius: 50%; border: 0; background: radial-gradient(circle at 40% 35%, #F58A3A, #D65A08); box-shadow: 0 2px 4px rgba(0,0,0,.3), inset 0 1px 1px rgba(255,255,255,.4); color: #fff; font-size: 15px; cursor: pointer; }
+  .C .round:active { transform: translateY(1px); }
+
+  /* =====================================================================
+     D · GRAPHIT — dunkel, ohne Akzentfarbe, Zeitschiene
+     ===================================================================== */
+  .D { --bg: #111214; --panel: #16171A; --raise: #1D1F23; --text: #E7E6E2; --mute: #7B7E84; --dim: #4A4D53; --line: #25272B;
+       font-family: "Hanken Grotesk", sans-serif; color: var(--text); background: var(--bg); border: 1px solid #1f2024; }
+  .D .lights i { background: #2a2c30; }
+  .D .side { background: var(--bg); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .D .brand { padding: 18px 18px 24px; font: 500 13px "JetBrains Mono"; color: var(--text); letter-spacing: -.01em; }
+  .D .brand span { color: var(--dim); }
+  .D .lbl { font: 400 10.5px "JetBrains Mono"; color: var(--dim); padding: 0 18px 6px; }
+  .D .grp { margin-bottom: 18px; }
+  .D .it { padding: 7px 18px; font-size: 13px; color: var(--mute); display: flex; gap: 8px; align-items: center; cursor: pointer; transition: color .15s; }
+  .D .it:hover { color: var(--text); }
+  .D .it.on { color: var(--text); background: var(--panel); box-shadow: inset 2px 0 0 var(--text); }
+  .D .it .t { margin-left: auto; font: 10.5px "JetBrains Mono"; color: var(--dim); }
+  .D .main { background: var(--panel); }
+  .D .head { display: flex; align-items: center; gap: 14px; padding: 16px 28px; border-bottom: 1px solid var(--line); }
+  .D .head h1 { margin: 0; font: 500 15px "Hanken Grotesk"; }
+  .D .head .sub { font: 11px "JetBrains Mono"; color: var(--dim); }
+  .D .spacer { flex: 1; }
+  .D .pick { font: 11.5px "JetBrains Mono"; color: var(--mute); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .D .pick b { color: var(--text); font-weight: 500; }
+  .D .pick:hover { border-color: var(--dim); }
+  .D .col { max-width: 760px; margin: 0 auto; padding: 28px 28px 10px 28px; }
+  .D .you { font-size: 15px; line-height: 1.6; color: var(--text); padding-left: 88px; margin-bottom: 26px; position: relative; }
+  .D .you::before { content: "du"; position: absolute; left: 0; top: 2px; font: 11px "JetBrains Mono"; color: var(--dim); }
+  /* Signatur: Zeitschiene */
+  .D .rail { position: relative; padding-left: 88px; margin-bottom: 22px; }
+  .D .rail::before { content: ""; position: absolute; left: 72px; top: 6px; bottom: 6px; width: 1px; background: var(--line); }
+  .D .ev { position: relative; display: flex; gap: 12px; align-items: baseline; padding: 6px 0; font-size: 13px; color: var(--mute); }
+  .D .ev .ts { position: absolute; left: -88px; width: 54px; text-align: right; font: 10.5px "JetBrains Mono"; color: var(--dim); }
+  .D .ev::before { content: ""; position: absolute; left: -19px; top: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--panel); border: 1px solid var(--mute); }
+  .D .ev.ok::before { background: var(--mute); }
+  .D .ev.run::before { background: var(--text); border-color: var(--text); box-shadow: 0 0 0 4px rgba(231,230,226,.08); animation: pulseD 1.6s ease-in-out infinite; }
+  @keyframes pulseD { 50% { box-shadow: 0 0 0 7px rgba(231,230,226,0) } }
+  .D .ev b { color: var(--text); font-weight: 500; }
+  .D .ev code { font: 11.5px "JetBrains Mono"; color: var(--mute); }
+  .D .ev .dur { margin-left: auto; font: 10.5px "JetBrains Mono"; color: var(--dim); }
+  .D .ev.run .dur::after { content: " ●"; animation: blinkA 1s steps(1) infinite; }
+  .D .answer { padding-left: 88px; }
+  .D p { font-size: 14.5px; line-height: 1.7; margin: 0 0 14px; color: #D2D1CD; }
+  .D p strong { color: var(--text); font-weight: 600; }
+  .D table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 4px 0 18px; }
+  .D th { font: 400 10.5px "JetBrains Mono"; color: var(--dim); text-align: left; padding: 0 0 8px; border-bottom: 1px solid var(--line); }
+  .D td { padding: 9px 0; border-bottom: 1px solid var(--line); color: #D2D1CD; }
+  .D td.num, .D th.num { text-align: right; font-family: "JetBrains Mono"; }
+  .D pre { font: 12px/1.65 "JetBrains Mono"; background: var(--bg); color: #CFCFCB; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; overflow: auto; }
+  .D .meta { font: 10.5px "JetBrains Mono"; color: var(--dim); }
+  .D .perm { max-width: 704px; width: calc(100% - 56px); margin: 0 auto 10px; border: 1px solid var(--mute); border-radius: 10px; padding: 11px 12px 11px 14px; display: flex; gap: 12px; align-items: center; font-size: 13px; background: var(--raise); }
+  .D .perm code { font: 11.5px "JetBrains Mono"; color: var(--mute); }
+  .D .btn { font: 500 12px "Hanken Grotesk"; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+  .D .btn.pri { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .D .btn:focus-visible, .D .it:focus-visible, .D .pick:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .D .compose { max-width: 704px; width: calc(100% - 56px); margin: 0 auto 20px; background: var(--raise); border: 1px solid var(--line); border-radius: 12px; }
+  .D .compose .in { padding: 14px 16px 8px; font-size: 14.5px; color: var(--dim); }
+  .D .compose .in .tok { color: var(--text); background: #2A2C31; border-radius: 4px; padding: 1px 5px; font: 12.5px "JetBrains Mono"; }
+  .D .compose .bar { display: flex; gap: 14px; align-items: center; padding: 6px 10px 10px 16px; font: 10.5px "JetBrains Mono"; color: var(--dim); }
+  .D .kbd { border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--mute); }
+</style>
+</head>
+<body>
+
+<nav class="switch" aria-label="Designrichtung wählen">
+  <button class="on" data-v="A">A · Reißbrett <small>hell</small></button>
+  <button data-v="B">B · Aura <small>hell</small></button>
+  <button data-v="C">C · Instrument <small>hell</small></button>
+  <button data-v="D">D · Graphit <small>dunkel</small></button>
+</nav>
+
+<p class="note" id="note"></p>
+
+<div class="stage">
+
+<!-- ================================================================== A -->
+<section class="view on" id="A" aria-label="Reißbrett">
+  <div class="win A">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand">AppForge <span>v0.1</span></div>
+      <div class="grp">
+        <div class="lbl"><span>ZENTRALE</span></div>
+        <div class="it" tabindex="0">Aufträge <span class="mk">2 laufen</span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl"><span>PROJEKTE</span><span>+</span></div>
+        <div class="it on" tabindex="0">Schnitt</div>
+        <div class="it" tabindex="0">Chroma</div>
+      </div>
+      <div class="grp">
+        <div class="lbl"><span>CHATS</span><span>+</span></div>
+        <div class="it on" tabindex="0">Timeline-Spuren höher <span class="mk">●</span></div>
+        <div class="it" tabindex="0">Zweck der App</div>
+        <div class="it" tabindex="0">Export-Fehler 4K</div>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="head">
+        <div><h1>Timeline-Spuren höher</h1><div class="sub">Schnitt · iPhone</div></div>
+        <div class="spacer"></div>
+        <div class="field">Agent<b>Bauen</b></div>
+        <div class="field">Plattform<b>iPhone</b></div>
+        <div class="field">Modell<b>DeepSeek V4.1 Flash</b></div>
+      </header>
+      <div class="scroll">
+        <div class="sheetgrid">
+          <div class="col">
+            <div class="you">Mach die Timeline-Spuren etwas höher und prüf es im Simulator.</div>
+            <p>Die Spuren sind jetzt deutlich griffiger. Ich habe die Höhen zentral in <code>SpurMetrik</code> angepasst, damit Video, Ton und Titel im gleichen Raster bleiben.</p>
+            <table>
+              <tr><th>SPUR</th><th class="num">VORHER</th><th class="num">JETZT</th></tr>
+              <tr><td>Video</td><td class="num">32 pt</td><td class="num">44 pt</td></tr>
+              <tr><td>Ton</td><td class="num">28 pt</td><td class="num">40 pt</td></tr>
+              <tr><td>Titel</td><td class="num">24 pt</td><td class="num">32 pt</td></tr>
+            </table>
+            <pre>enum SpurMetrik {
+    static let video: CGFloat = 44
+    static let ton: CGFloat = 40
+    static let titel: CGFloat = 32
+}</pre>
+            <div class="meta">deepseek/deepseek-flash · 12 480 Tokens · $0.0021</div>
+          </div>
+          <div class="margin" aria-label="Arbeitsschritte">
+            <div class="ann"><div class="t">Datei gelesen</div><div class="d">Ansicht/Timeline.swift</div><div class="s">0,2 s</div></div>
+            <div class="ann"><div class="t">Datei geändert</div><div class="d">Kern/SpurMetrik.swift · +6 −2</div><div class="s">0,4 s</div></div>
+            <div class="ann"><div class="t">Gebaut</div><div class="d">xcodebuild -scheme Schnitt</div><div class="s">38 s · erfolgreich</div></div>
+            <div class="ann run"><div class="t">Simulator-Aufnahme</div><div class="d">iPhone 17 Pro Max</div><div class="s">läuft </div></div>
+          </div>
+        </div>
+      </div>
+      <div class="perm"><span>Befehl ausführen: <code>git commit -m "Spuren höher"</code></span><div class="spacer"></div><button class="btn">Ablehnen</button><button class="btn pri">Erlauben</button></div>
+      <div class="compose">
+        <div class="in">Beschreibe, was entstehen soll …</div>
+        <div class="bar"><span>+ Anhang</span><span>Freigaben: automatisch</span><div class="spacer"></div><span>↩ senden</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== B -->
+<section class="view" id="B" aria-label="Aura">
+  <div class="win B">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand">appforge</div>
+      <div class="grp"><div class="it" tabindex="0">Zentrale</div></div>
+      <div class="grp">
+        <div class="lbl">Projekte</div>
+        <div class="it on" tabindex="0">Schnitt</div>
+        <div class="it" tabindex="0">Chroma</div>
+      </div>
+      <div class="grp">
+        <div class="lbl">Chats</div>
+        <div class="it on" tabindex="0">Timeline-Spuren höher <span class="dot"></span></div>
+        <div class="it" tabindex="0">Zweck der App</div>
+        <div class="it" tabindex="0">Export-Fehler 4K</div>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="head">
+        <h1>Timeline-Spuren höher</h1><span class="sub">Schnitt</span>
+        <div class="spacer"></div>
+        <div class="seg"><span class="on">Bauen</span><span>Planen</span></div>
+        <div class="seg"><span class="on">iPhone</span><span>iPad</span><span>Mac</span></div>
+      </header>
+      <div class="scroll">
+        <div class="col">
+          <div class="you">Mach die Timeline-Spuren etwas höher und prüf es im Simulator.</div>
+          <div class="who"><span class="orb"></span><span id="bModelName">DeepSeek V4.1 Flash</span></div>
+          <div class="steps">
+            <div class="step ok"><span class="ck"></span><b>Datei gelesen</b><code>Ansicht/Timeline.swift</code></div>
+            <div class="step ok"><span class="ck"></span><b>Datei geändert</b><code>Kern/SpurMetrik.swift · +6 −2</code></div>
+            <div class="step ok"><span class="ck"></span><b>Gebaut</b><code>38 s</code></div>
+            <div class="step run"><span class="ck"></span><b>Simulator-Aufnahme</b><code>iPhone 17 Pro Max</code></div>
+          </div>
+          <p>Die Spuren sind jetzt deutlich griffiger. Ich habe die Höhen zentral in <code>SpurMetrik</code> angepasst, damit Video, Ton und Titel im gleichen Raster bleiben.</p>
+          <table>
+            <tr><th>Spur</th><th class="num">Vorher</th><th class="num">Jetzt</th></tr>
+            <tr><td>Video</td><td class="num">32 pt</td><td class="num">44 pt</td></tr>
+            <tr><td>Ton</td><td class="num">28 pt</td><td class="num">40 pt</td></tr>
+            <tr><td>Titel</td><td class="num">24 pt</td><td class="num">32 pt</td></tr>
+          </table>
+          <pre>enum SpurMetrik {
+    static let video: CGFloat = 44
+    static let ton: CGFloat = 40
+    static let titel: CGFloat = 32
+}</pre>
+          <div class="meta">12 480 Tokens · $0.0021</div>
+        </div>
+      </div>
+      <div class="perm"><span>Befehl ausführen · <code>git commit -m "Spuren höher"</code></span><div class="spacer"></div><button class="btn">Ablehnen</button><button class="btn pri">Erlauben</button></div>
+      <div class="composewrap">
+        <div class="compose">
+          <div class="in">Beschreibe, was entstehen soll …</div>
+          <div class="bar">
+            <span class="model" title="Modell wechseln"><span class="orb"></span><span id="bModelPill">DeepSeek V4.1 Flash</span></span>
+            <span>Andere Modelle:</span>
+            <span class="palette" aria-label="Modell-Farben ausprobieren">
+              <button data-aura="#5B6CFF,#9B7BFF" data-name="DeepSeek V4.1 Flash" style="background:linear-gradient(135deg,#5B6CFF,#9B7BFF)" aria-label="DeepSeek"></button>
+              <button data-aura="#FF8A3D,#FFC24B" data-name="Qwen 3.8 Max" style="background:linear-gradient(135deg,#FF8A3D,#FFC24B)" aria-label="Qwen"></button>
+              <button data-aura="#D9774B,#E9A77E" data-name="Claude Sonnet" style="background:linear-gradient(135deg,#D9774B,#E9A77E)" aria-label="Claude"></button>
+              <button data-aura="#1FB58F,#6AD9C0" data-name="GPT-5" style="background:linear-gradient(135deg,#1FB58F,#6AD9C0)" aria-label="GPT"></button>
+              <button data-aura="#3D8BFF,#7FD1FF" data-name="Gemini Pro" style="background:linear-gradient(135deg,#3D8BFF,#7FD1FF)" aria-label="Gemini"></button>
+            </span>
+            <button class="send" aria-label="Senden">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== C -->
+<section class="view" id="C" aria-label="Instrument">
+  <div class="win C">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand"><span class="led"></span>AppForge</div>
+      <div class="grp"><div class="lbl">Zentrale</div><div class="it" tabindex="0">Aufträge <span class="l on"></span></div></div>
+      <div class="grp">
+        <div class="lbl">Projekte</div>
+        <div class="it on" tabindex="0">Schnitt <span class="l"></span></div>
+        <div class="it" tabindex="0">Chroma <span class="l"></span></div>
+      </div>
+      <div class="grp">
+        <div class="lbl">Chats</div>
+        <div class="it on" tabindex="0">Timeline-Spuren höher <span class="l on"></span></div>
+        <div class="it" tabindex="0">Zweck der App <span class="l"></span></div>
+        <div class="it" tabindex="0">Export-Fehler 4K <span class="l"></span></div>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="head">
+        <div><h1>Timeline-Spuren höher</h1><div class="sub">Schnitt</div></div>
+        <div class="spacer"></div>
+        <div class="slider"><span class="cap">Plattform</span>
+          <div class="track" id="cTrack"><div class="knob"></div><span class="on" data-i="0">iPhone</span><span data-i="1">iPad</span><span data-i="2">Mac</span></div>
+        </div>
+        <div class="model"><span class="cap" style="font:600 9px 'Archivo Narrow';letter-spacing:.14em;color:#77756F">MODELL</span><b>DeepSeek V4.1 Flash</b></div>
+      </header>
+      <div class="body scroll">
+        <div class="col">
+          <div class="you">Mach die Timeline-Spuren etwas höher und prüf es im Simulator.</div>
+          <div class="steps">
+            <div class="step"><span class="l"></span><span>Datei gelesen <code>Ansicht/Timeline.swift</code></span><span class="t">0,2 s</span></div>
+            <div class="step"><span class="l"></span><span>Datei geändert <code>SpurMetrik.swift +6 −2</code></span><span class="t">0,4 s</span></div>
+            <div class="step"><span class="l"></span><span>Gebaut <code>xcodebuild</code></span><span class="t">38 s</span></div>
+            <div class="step run"><span class="l"></span><span>Simulator-Aufnahme <code>iPhone 17 Pro Max</code></span><span class="t">läuft</span></div>
+          </div>
+          <p>Die Spuren sind jetzt deutlich griffiger. Ich habe die Höhen zentral in <code>SpurMetrik</code> angepasst, damit Video, Ton und Titel im gleichen Raster bleiben.</p>
+          <table>
+            <tr><th>Spur</th><th class="num">Vorher</th><th class="num">Jetzt</th></tr>
+            <tr><td>Video</td><td class="num">32 pt</td><td class="num">44 pt</td></tr>
+            <tr><td>Ton</td><td class="num">28 pt</td><td class="num">40 pt</td></tr>
+            <tr><td>Titel</td><td class="num">24 pt</td><td class="num">32 pt</td></tr>
+          </table>
+          <pre>enum SpurMetrik {
+    static let video: CGFloat = 44
+    static let ton: CGFloat = 40
+    static let titel: CGFloat = 32
+}</pre>
+          <div class="meta">DEEPSEEK/DEEPSEEK-FLASH · 12 480 TOKENS</div>
+        </div>
+        <div class="gauges" aria-label="Messwerte">
+          <div class="gauge"><div class="cap"><span>Kosten</span><span>max. $0.30</span></div><div class="val">$0.0021</div><div class="scale"><span class="needle" id="needleCost" style="left:1%"></span></div></div>
+          <div class="gauge"><div class="cap"><span>Kontext</span><span>128k</span></div><div class="val">12,5k</div><div class="scale"><span class="needle" id="needleCtx" style="left:1%"></span></div></div>
+          <div class="gauge"><div class="cap"><span>Zeit</span><span>max. 15 min</span></div><div class="val">1:12</div><div class="scale"><span class="needle" id="needleTime" style="left:1%"></span></div></div>
+        </div>
+      </div>
+      <div class="perm"><span>Befehl ausführen · <code>git commit -m "Spuren höher"</code></span><div class="spacer"></div><button class="key">Ablehnen</button><button class="key sig">Erlauben</button></div>
+      <div class="compose">
+        <div class="in">Beschreibe, was entstehen soll …</div>
+        <button class="key">Anhang</button>
+        <button class="round" aria-label="Senden">↑</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== D -->
+<section class="view" id="D" aria-label="Graphit">
+  <div class="win D">
+    <aside class="side">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand">appforge<span>/schnitt</span></div>
+      <div class="grp"><div class="lbl">zentrale</div><div class="it" tabindex="0">Aufträge <span class="t">2</span></div></div>
+      <div class="grp">
+        <div class="lbl">projekte</div>
+        <div class="it on" tabindex="0">Schnitt</div>
+        <div class="it" tabindex="0">Chroma</div>
+      </div>
+      <div class="grp">
+        <div class="lbl">chats</div>
+        <div class="it on" tabindex="0">Timeline-Spuren höher <span class="t">1:12</span></div>
+        <div class="it" tabindex="0">Zweck der App <span class="t">gestern</span></div>
+        <div class="it" tabindex="0">Export-Fehler 4K <span class="t">Mo</span></div>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="head">
+        <div><h1>Timeline-Spuren höher</h1><div class="sub">bauen · iphone</div></div>
+        <div class="spacer"></div>
+        <span class="pick" tabindex="0">agent <b>Bauen</b></span>
+        <span class="pick" tabindex="0">ziel <b>iPhone</b></span>
+        <span class="pick" tabindex="0">modell <b>DeepSeek V4.1 Flash</b></span>
+      </header>
+      <div class="scroll">
+        <div class="col">
+          <div class="you">Mach die Timeline-Spuren etwas höher und prüf es im Simulator.</div>
+          <div class="rail" aria-label="Zeitschiene der Arbeitsschritte">
+            <div class="ev ok"><span class="ts">00:02</span><b>Datei gelesen</b><code>Ansicht/Timeline.swift</code><span class="dur">0,2 s</span></div>
+            <div class="ev ok"><span class="ts">00:09</span><b>Datei geändert</b><code>Kern/SpurMetrik.swift +6 −2</code><span class="dur">0,4 s</span></div>
+            <div class="ev ok"><span class="ts">00:11</span><b>Gebaut</b><code>xcodebuild -scheme Schnitt</code><span class="dur">38 s</span></div>
+            <div class="ev run"><span class="ts">00:52</span><b>Simulator-Aufnahme</b><code>iPhone 17 Pro Max</code><span class="dur">läuft</span></div>
+          </div>
+          <div class="answer">
+            <p><strong>Die Spuren sind jetzt deutlich griffiger.</strong> Ich habe die Höhen zentral in <code>SpurMetrik</code> angepasst, damit Video, Ton und Titel im gleichen Raster bleiben.</p>
+            <table>
+              <tr><th>spur</th><th class="num">vorher</th><th class="num">jetzt</th></tr>
+              <tr><td>Video</td><td class="num">32 pt</td><td class="num">44 pt</td></tr>
+              <tr><td>Ton</td><td class="num">28 pt</td><td class="num">40 pt</td></tr>
+              <tr><td>Titel</td><td class="num">24 pt</td><td class="num">32 pt</td></tr>
+            </table>
+            <pre>enum SpurMetrik {
+    static let video: CGFloat = 44
+    static let ton: CGFloat = 40
+    static let titel: CGFloat = 32
+}</pre>
+            <div class="meta">deepseek-flash · 12 480 tok · $0.0021</div>
+          </div>
+        </div>
+      </div>
+      <div class="perm"><span>Befehl ausführen · <code>git commit -m "Spuren höher"</code></span><div class="spacer"></div><button class="btn">Ablehnen</button><button class="btn pri">Erlauben</button></div>
+      <div class="compose">
+        <div class="in">Frag <span class="tok">@lektor</span> nach den Beschriftungen oder schreib <span class="tok">/foto</span> …</div>
+        <div class="bar"><span>+ anhang</span><span>freigaben: automatisch</span><div class="spacer"></div><span><span class="kbd">↩</span> senden</span><span><span class="kbd">⌘↩</span> unterbrechen</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  const notes = {
+    A: "<b>Reißbrett.</b> Der Chat liest sich wie eine technische Zeichnung: links der Text, rechts am Rand jeder Arbeitsschritt als Anmerkung mit Bezugslinie. Kühles Grau, Graphit, ein einziges Kobalt als Tusche. IBM Plex Sans, Mono und Condensed.",
+    B: "<b>Aura.</b> Fast weiß, viel Luft, keine Linien. Die einzige Farbe gehört dem aktiven Modell: Jede KI hat ihre eigene weiche Aura hinter dem Eingabefeld. Probier unten die Farbpunkte aus. Geist und Geist Mono.",
+    C: "<b>Instrument.</b> Wie ein Gerät von Braun: Aluminiumgrau, Schiebeschalter für die Plattform (klicken), echte Tasten, Status-LEDs. Rechts Messskalen für Kosten, Kontext und Zeit. Archivo und JetBrains Mono.",
+    D: "<b>Graphit.</b> Dunkel, ohne Akzentfarbe. Links eine Zeitschiene: jeder Schritt der KI mit Zeitpunkt und Dauer, der aktive pulsiert. Kleinschreibung in der Chrome, Hanken Grotesk und JetBrains Mono."
+  };
+  const note = document.getElementById('note');
+  function show(v) {
+    document.querySelectorAll('.switch button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === v));
+    note.innerHTML = notes[v];
+    if (v === 'C') setTimeout(() => {
+      document.getElementById('needleCost').style.left = '7%';
+      document.getElementById('needleCtx').style.left = '10%';
+      document.getElementById('needleTime').style.left = '8%';
+    }, 250);
+  }
+  document.querySelectorAll('.switch button').forEach(b => b.onclick = () => show(b.dataset.v));
+  show('A');
+
+  // B: Modell-Aura wechseln
+  document.querySelectorAll('.B .palette button').forEach(btn => btn.onclick = () => {
+    const [a, b] = btn.dataset.aura.split(',');
+    const root = document.querySelector('.B');
+    root.style.setProperty('--aura', a); root.style.setProperty('--aura2', b);
+    document.getElementById('bModelName').textContent = btn.dataset.name;
+    document.getElementById('bModelPill').textContent = btn.dataset.name;
+  });
+
+  // C: Schiebeschalter
+  document.querySelectorAll('#cTrack span').forEach(s => s.onclick = () => {
+    document.querySelectorAll('#cTrack span').forEach(x => x.classList.toggle('on', x === s));
+    document.querySelector('#cTrack .knob').style.transform = `translateX(${s.dataset.i * 44}px)`;
+  });
+</script>
+</body>
+</html>
