@@ -7,5 +7,11 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AppForge ist im WLAN für die iPhone-App erreichbar.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_appforge._tcp</string>
+	</array>
 </dict>
 </plist>

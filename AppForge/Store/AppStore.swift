@@ -69,7 +69,7 @@ final class AppStore {
     private(set) var sessionDiffs: [String: [FileChange]] = [:]
 
     // Seitenleiste rechts: Simulator & Änderungen
-    enum InspectorTab: String { case simulator, changes }
+    enum InspectorTab: String { case simulator, changes, ideas }
     var inspectorVisible = false
     var inspectorTab: InspectorTab = .simulator
     let simulator = SimulatorService()
@@ -83,9 +83,16 @@ final class AppStore {
     @ObservationIgnored private var eventDirectory: String?
     var showHome = true
 
+    // Ideen je App und die Verbindung zum iPhone
+    let ideas = IdeaStore()
+    let companion = CompanionBridge()
+
     init() {
         dispatcher.store = self
         media.store = self
+        ideas.store = self
+        companion.store = self
+        ideas.onChange = { [weak self] projectID in self?.companion.ideasChanged(projectID) }
         if let data = UserDefaults.standard.data(forKey: "selectedModel") {
             selectedModel = try? JSONDecoder().decode(ModelSelection.self, from: data)
         }
@@ -214,6 +221,7 @@ final class AppStore {
 
     func startEngine() async {
         eventTask?.cancel()
+        companion.startIfEnabled()
         engineState = .starting
         do {
             client = try await engine.start(binaryOverride: binaryOverride)
@@ -224,6 +232,7 @@ final class AppStore {
             if let selectedProject { await openProject(selectedProject) }
             else if let first = projects.first { await openProject(first) }
             await ensureSmallModel()
+            Task { await ideas.analyzeOutstanding() }
         } catch {
             client = nil
             engineState = .failed(error.localizedDescription)
@@ -287,7 +296,7 @@ final class AppStore {
         subscribeToEvents(directory: path)
         do {
             sessions = try await client.sessions(directory: path)
-                .filter { $0.parentID == nil }
+                .filter { $0.parentID == nil && !IdeaStore.isAgentSession($0) }
                 .sorted { $0.time.updated > $1.time.updated }
             selectedSessionID = sessions.first?.id
             permissions = (try? await client.pendingPermissions(directory: path)) ?? []
@@ -684,7 +693,7 @@ final class AppStore {
 
         case .sessionUpdated(let session):
             if let parent = session.parentID { parentOf[session.id] = parent }
-            guard session.parentID == nil, session.directory == selectedProject else { return }
+            guard session.parentID == nil, session.directory == selectedProject, !IdeaStore.isAgentSession(session) else { return }
             let wasReverted = sessions.first { $0.id == session.id }?.revert != nil
             upsert(session)
             // Zurücksetzung aufgehoben oder endgültig verworfen → Verlauf neu laden

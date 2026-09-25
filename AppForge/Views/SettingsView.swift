@@ -10,6 +10,7 @@ struct SettingsView: View {
             Tab("Sparen", systemImage: "leaf") { SavingsSettings() }
             Tab("Skills", systemImage: "book") { SkillsSettings() }
             Tab("Engine", systemImage: "gearshape.2") { EngineSettings() }
+            Tab("iPhone", systemImage: "iphone") { CompanionSettings() }
         }
         .frame(width: 660, height: 540)
         .scrollContentBackground(.hidden)

@@ -17,6 +17,11 @@
 			path = AppForge;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000011 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -35,6 +40,7 @@
 			children = (
 				A10000000000000000000002 /* AppForge-Info.plist */,
 				A10000000000000000000010 /* AppForge */,
+				A10000000000000000000011 /* Shared */,
 				A10000000000000000000031 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,6 +70,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				A10000000000000000000010 /* AppForge */,
+				A10000000000000000000011 /* Shared */,
 			);
 			name = AppForge;
 			productName = AppForge;
