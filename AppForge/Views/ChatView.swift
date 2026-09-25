@@ -284,6 +284,7 @@ private struct InspectorToggles: View {
                     }
                 }
             toggle(.ideas, symbol: "lightbulb", help: "Ideen zu dieser App")
+            toggle(.knowledge, symbol: "books.vertical", help: "Projektwissen")
         }
         .animation(Theme.Motion.bouncy, value: store.currentChanges.count)
     }

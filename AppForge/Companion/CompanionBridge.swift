@@ -476,7 +476,7 @@ final class CompanionBridge {
         guard let client = store?.client else { throw BridgeError.engineOffline }
         let busy = (try? await client.sessionStatus(directory: projectID)) ?? [:]
         return try await client.sessions(directory: projectID)
-            .filter { $0.parentID == nil && !IdeaStore.isAgentSession($0) }
+            .filter { $0.parentID == nil && !AppStore.isHelperSession($0) }
             .sorted { $0.time.updated > $1.time.updated }
             .prefix(60)
             .map { session in
@@ -496,6 +496,12 @@ final class CompanionBridge {
             session = sessionID
         } else {
             session = try await client.createSession(directory: projectID).id
+        }
+        // Ohne Angabe im bestehenden Chat mit demselben Agenten weitermachen (z. B. dem Projekt-Kenner).
+        var agent = agent
+        if agent == nil, let sessionID {
+            agent = (try? await client.messages(sessionID: sessionID, directory: projectID))?
+                .last { $0.info.isUser }?.info.agent
         }
         let isMac = projectID == Self.macWorkspace
         let system = isMac ? Self.phoneHint : store.platform.systemHint + "\n\n" + Self.phoneHint
@@ -620,6 +626,7 @@ final class CompanionBridge {
             guard let pending = try? await client.pendingPermissions(directory: directory) else { continue }
             var open: [PermissionRequest] = []
             for request in pending {
+                if store.knowledge.owns(request.sessionID) { continue }  // entscheidet der Wissensdienst
                 if store.permissionMode.autoApproves(request) {
                     try? await client.replyPermission(requestID: request.id, directory: directory, reply: .once)
                 } else {

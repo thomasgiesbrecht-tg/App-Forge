@@ -7,8 +7,12 @@ struct ChatScreen: View {
     let projectID: String
     @State var sessionID: String?
 
-    init(projectID: String, sessionID: String?) {
+    /// z. B. „kenner“ für Fragen an den Projekt-Kenner. `nil` = Standard-Agent bzw. der bisherige des Chats.
+    let agent: String?
+
+    init(projectID: String, sessionID: String?, agent: String? = nil) {
         self.projectID = projectID
+        self.agent = agent
         _sessionID = State(initialValue: sessionID)
     }
 
@@ -58,7 +62,7 @@ struct ChatScreen: View {
                 busy: chat?.busy ?? false,
                 onStop: { if let sessionID { Task { await model.abortChat(projectID: projectID, sessionID: sessionID) } } }
             ) { text in
-                let id = await model.sendChat(text, projectID: projectID, sessionID: sessionID)
+                let id = await model.sendChat(text, projectID: projectID, sessionID: sessionID, agent: agent)
                 if sessionID == nil, let id {
                     sessionID = id
                     await model.openChat(projectID: projectID, sessionID: id)
@@ -93,11 +97,18 @@ struct ChatScreen: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if agent == "kenner" {
+                Text("Was möchtest du über die App wissen?").font(.title3.weight(.semibold))
+                Text("Der Projekt-Kenner kennt Aufbau, Funktionen, Zusammenhänge und warum etwas so gebaut ist. Er ändert nichts.")
+                    .font(.footnote)
+                    .foregroundStyle(Palette.secondary)
+            } else {
             Text(model.project(projectID)?.isMac == true ? "Was soll der Mac erledigen?" : "Was soll an der App passieren?")
                 .font(.title3.weight(.semibold))
             Text("Der Agent arbeitet auf dem Mac mit allen Werkzeugen, Konnektoren und MCP-Servern. Schreib „sag Bescheid, wenn fertig“, dann bekommst du eine Benachrichtigung – auch bei Rückfragen.")
                 .font(.footnote)
                 .foregroundStyle(Palette.secondary)
+            }
         }
         .padding(.top, 20)
     }

@@ -57,7 +57,7 @@ enum AgentLibrary {
     static func load() -> [AgentDefinition] {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
         return files
-            .filter { $0.pathExtension == "md" && !["dispatcher", "ideen"].contains($0.deletingPathExtension().lastPathComponent) }
+            .filter { $0.pathExtension == "md" && !["dispatcher", "ideen", "chronist", "kenner"].contains($0.deletingPathExtension().lastPathComponent) }
             .compactMap { url in
                 guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
                 return parse(text, name: url.deletingPathExtension().lastPathComponent)

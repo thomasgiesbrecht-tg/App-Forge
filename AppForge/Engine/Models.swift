@@ -143,7 +143,7 @@ struct AgentInfo: Codable, Identifiable, Hashable, Sendable {
     var id: String { name }
     var isPrimary: Bool { mode == "primary" || mode == "all" }
     var isSubagent: Bool { mode == "subagent" || mode == "all" }
-    var isVisible: Bool { hidden != true && !["compaction", "title", "summary", "dispatcher", "ideen"].contains(name) }
+    var isVisible: Bool { hidden != true && !["compaction", "title", "summary", "dispatcher", "ideen", "chronist"].contains(name) }
 
     var displayName: String {
         switch name {
@@ -152,6 +152,7 @@ struct AgentInfo: Codable, Identifiable, Hashable, Sendable {
         case "general": "Allgemein"
         case "explore": "Erkunden"
         case "scout": "Späher"
+        case "kenner": "Projekt-Kenner"
         default: name.replacingOccurrences(of: "-", with: " ").capitalized
         }
     }

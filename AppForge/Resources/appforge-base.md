@@ -11,6 +11,12 @@ Antworte in der Sprache der Nutzerin bzw. des Nutzers.
 4. **Sichtbar prüfen:** Wenn du UI änderst, starte die App im Simulator bzw. auf dem Mac und prüfe sie per Screenshot, sofern dein Modell Bilder versteht. Sonst prüfe die UI-Hierarchie (describe_ui) und Logs.
 5. **Berichte Ergebnisse:** Sage, was jetzt anders ist und wie es verifiziert wurde, nicht nur, welcher Code geändert wurde.
 
+## Projektwissen
+
+Gibt es im Projekt `.appforge/wissen/`, steht dort alles über die App: Aufbau, Funktionen, Zusammenhänge und Entscheidungen.
+Die Kurzfassung bekommst du automatisch (AGENTS.md). **Lies gezielt die passenden Wissensdateien, bevor du im Code suchst** –
+oder frag den Agenten `@kenner`. Die Dateien in `.appforge/wissen/` pflegt AppForge selbst; ändere sie nicht.
+
 ## Werkzeuge
 
 - **XcodeBuildMCP** (`xcodebuildmcp_*`): Projekte/Schemes finden, Simulatoren auflisten und starten, bauen und ausführen (Simulator, Gerät, macOS), Tests, Screenshots, UI-Hierarchie, Tippen/Wischen, Logs.

@@ -79,6 +79,13 @@ struct ProjectView: View {
         }
         .listRowBackground(Palette.raise)
 
+        if project?.isMac != true {
+            NavigationLink(value: AppsView.Route.chat(projectID: projectID, sessionID: nil, agent: "kenner")) {
+                Label("Frag den Projekt-Kenner", systemImage: "books.vertical").foregroundStyle(Palette.text)
+            }
+            .listRowBackground(Palette.raise)
+        }
+
         let queued = model.queuedChats(projectID: projectID, sessionID: nil)
         ForEach(queued) { item in
             if case .chat(_, _, _, let text, _) = item {

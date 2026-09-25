@@ -69,7 +69,7 @@ final class AppStore {
     private(set) var sessionDiffs: [String: [FileChange]] = [:]
 
     // Seitenleiste rechts: Simulator & Änderungen
-    enum InspectorTab: String { case simulator, changes, ideas }
+    enum InspectorTab: String { case simulator, changes, ideas, knowledge }
     var inspectorVisible = false
     var inspectorTab: InspectorTab = .simulator
     let simulator = SimulatorService()
@@ -86,12 +86,15 @@ final class AppStore {
     // Ideen je App und die Verbindung zum iPhone
     let ideas = IdeaStore()
     let companion = CompanionBridge()
+    /// Projektwissen je App, hält sich selbst aktuell.
+    let knowledge = KnowledgeService()
 
     init() {
         dispatcher.store = self
         media.store = self
         ideas.store = self
         companion.store = self
+        knowledge.store = self
         ideas.onChange = { [weak self] projectID in self?.companion.ideasChanged(projectID) }
         if let data = UserDefaults.standard.data(forKey: "selectedModel") {
             selectedModel = try? JSONDecoder().decode(ModelSelection.self, from: data)
@@ -232,6 +235,7 @@ final class AppStore {
             if let selectedProject { await openProject(selectedProject) }
             else if let first = projects.first { await openProject(first) }
             await ensureSmallModel()
+            knowledge.start()
             Task { await ideas.analyzeOutstanding() }
         } catch {
             client = nil
@@ -272,6 +276,7 @@ final class AppStore {
         if !projects.contains(path) {
             projects.append(path)
             UserDefaults.standard.set(projects, forKey: "projects")
+            knowledge.refreshStands()
         }
         await openProject(path)
     }
@@ -296,7 +301,7 @@ final class AppStore {
         subscribeToEvents(directory: path)
         do {
             sessions = try await client.sessions(directory: path)
-                .filter { $0.parentID == nil && !IdeaStore.isAgentSession($0) }
+                .filter { $0.parentID == nil && !Self.isHelperSession($0) }
                 .sorted { $0.time.updated > $1.time.updated }
             selectedSessionID = sessions.first?.id
             permissions = (try? await client.pendingPermissions(directory: path)) ?? []
@@ -699,7 +704,7 @@ final class AppStore {
 
         case .sessionUpdated(let session):
             if let parent = session.parentID { parentOf[session.id] = parent }
-            guard session.parentID == nil, session.directory == selectedProject, !IdeaStore.isAgentSession(session) else { return }
+            guard session.parentID == nil, session.directory == selectedProject, !Self.isHelperSession(session) else { return }
             let wasReverted = sessions.first { $0.id == session.id }?.revert != nil
             upsert(session)
             // Zurücksetzung aufgehoben oder endgültig verworfen → Verlauf neu laden
@@ -715,6 +720,11 @@ final class AppStore {
             if let sessionID { sessionErrors[sessionID] = message } else { lastError = message }
 
         case .permissionAsked(let request):
+            // Der Chronist darf nur ins Projektwissen schreiben – das entscheidet der Wissensdienst selbst.
+            if knowledge.owns(request.sessionID), let directory = selectedProject {
+                Task { await knowledge.handlePermission(request, directory: directory) }
+                return
+            }
             if permissionMode.autoApproves(request), let client, let directory = selectedProject {
                 Task { try? await client.replyPermission(requestID: request.id, directory: directory, reply: .once) }
                 return
@@ -734,6 +744,11 @@ final class AppStore {
         case .other:
             break
         }
+    }
+
+    /// Hilfs-Chats von Ideen-Agent und Chronist erscheinen nicht in der Chat-Liste.
+    nonisolated static func isHelperSession(_ session: Session) -> Bool {
+        IdeaStore.isAgentSession(session) || KnowledgeService.isAgentSession(session)
     }
 
     func sessionError(_ sessionID: String?) -> String? {

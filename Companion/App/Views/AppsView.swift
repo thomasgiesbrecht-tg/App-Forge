@@ -8,7 +8,7 @@ struct AppsView: View {
 
     enum Route: Hashable {
         case project(String)
-        case chat(projectID: String, sessionID: String?)
+        case chat(projectID: String, sessionID: String?, agent: String? = nil)
     }
 
     private let columns = [GridItem(.adaptive(minimum: 96), spacing: 16)]
@@ -63,7 +63,7 @@ struct AppsView: View {
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .project(let id): ProjectView(projectID: id)
-                case .chat(let projectID, let sessionID): ChatScreen(projectID: projectID, sessionID: sessionID)
+                case .chat(let projectID, let sessionID, let agent): ChatScreen(projectID: projectID, sessionID: sessionID, agent: agent)
                 }
             }
             .sheet(isPresented: $addingProject) { AddProjectView() }

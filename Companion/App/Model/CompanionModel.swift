@@ -451,13 +451,13 @@ final class CompanionModel {
     /// Schickt eine Nachricht in einen Chat (ohne `sessionID`: neuer Chat). Offline landet sie in der Warteschlange.
     /// Gibt die Chat-ID zurück, sobald der Mac sie kennt.
     @discardableResult
-    func sendChat(_ text: String, projectID: String, sessionID: String?) async -> String? {
+    func sendChat(_ text: String, projectID: String, sessionID: String?, agent: String? = nil) async -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         SharedStore.markUsed(projectID)
         if isConnected {
             do {
-                let payload = try await request(.sendChat(projectID: projectID, sessionID: sessionID, text: trimmed, agent: nil))
+                let payload = try await request(.sendChat(projectID: projectID, sessionID: sessionID, text: trimmed, agent: agent))
                 if case .chatStarted(let projectID, let sessionID, let notify) = payload {
                     startLiveActivity(.session(projectID: projectID, sessionID: sessionID), title: trimmed, projectID: projectID, notify: notify)
                     Task { await loadSessions(projectID) }

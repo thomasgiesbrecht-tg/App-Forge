@@ -125,6 +125,11 @@ enum EngineConfig {
         if let source = Bundle.main.url(forResource: "dispatcher-agent", withExtension: "md") {
             try replaceItem(at: AgentLibrary.directory.appending(path: "dispatcher.md"), with: source)
         }
+        for (resource, name) in [("chronist-agent", KnowledgeService.chronistAgent), ("kenner-agent", KnowledgeService.expertAgent)] {
+            if let source = Bundle.main.url(forResource: resource, withExtension: "md") {
+                try replaceItem(at: AgentLibrary.directory.appending(path: "\(name).md"), with: source)
+            }
+        }
         if let source = Bundle.main.url(forResource: "ideen-agent", withExtension: "md") {
             try replaceItem(at: AgentLibrary.directory.appending(path: "\(IdeaStore.agentName).md"), with: source)
         }

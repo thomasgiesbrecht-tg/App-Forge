@@ -12,6 +12,7 @@ struct InspectorView: View {
                 tab(.simulator, "Simulator", "iphone.gen3")
                 tab(.changes, "Änderungen", "plusminus")
                 tab(.ideas, "Ideen", "lightbulb")
+                tab(.knowledge, "Wissen", "books.vertical")
             }
             .padding(3)
             .glass(cornerRadius: 14, tintOpacity: 0.3, shadow: false)
@@ -24,6 +25,7 @@ struct InspectorView: View {
                 case .simulator: SimulatorPanel()
                 case .changes: ChangesPanel()
                 case .ideas: IdeasPanel()
+                case .knowledge: KnowledgePanel()
                 }
             }
             .transition(.opacity.combined(with: .scale(scale: 0.98)))
