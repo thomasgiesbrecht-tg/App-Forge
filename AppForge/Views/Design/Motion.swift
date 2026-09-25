@@ -10,7 +10,7 @@ struct ForgeSpinner: View {
         Circle()
             .trim(from: 0.08, to: 0.78)
             .stroke(
-                AngularGradient(colors: [Theme.orange.opacity(0), Theme.orange], center: .center),
+                AngularGradient(colors: [Theme.active.opacity(0), Theme.active], center: .center),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
             )
             .frame(width: size, height: size)

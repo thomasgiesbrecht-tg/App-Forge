@@ -9,7 +9,7 @@ struct AmbientBackground: View {
     }
 }
 
-/// Weiches Leuchten hinter dem Eingabefeld: orange, solange die KI arbeitet,
+/// Weiches Leuchten hinter dem Eingabefeld: hell, solange die KI arbeitet,
 /// kurz grün, wenn sie fertig ist, sonst gar nicht vorhanden (der Weichzeichner ist teuer).
 struct ComposerAura: View {
     var isWorking: Bool
@@ -24,7 +24,7 @@ struct ComposerAura: View {
         ZStack {
             if mounted {
                 Ellipse()
-                    .fill(RadialGradient(colors: [working ? Theme.orange : Theme.green, .clear],
+                    .fill(RadialGradient(colors: [working ? Theme.active.opacity(0.55) : Theme.green, .clear],
                                          center: .center, startRadius: 0, endRadius: 260))
                     .frame(height: 90)
                     .padding(.horizontal, 60)

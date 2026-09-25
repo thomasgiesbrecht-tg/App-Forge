@@ -218,7 +218,7 @@ struct MediaSettingsView: View {
             Section {
                 HStack(spacing: 10) {
                     Image(systemName: hasKey ? "checkmark.circle.fill" : "key")
-                        .foregroundStyle(hasKey ? Theme.sage : Theme.ochre)
+                        .foregroundStyle(hasKey ? Theme.sage : Theme.attention)
                     Text(hasKey ? "Alibaba-Schlüssel gefunden" : "Kein Alibaba-Schlüssel – verbinde unter „Modelle“ den Anbieter „Alibaba“.")
                         .font(Theme.Fonts.small)
                 }

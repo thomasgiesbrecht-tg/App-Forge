@@ -441,7 +441,7 @@ private struct Meter: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.06))
                         Capsule()
-                            .fill(fraction > 0.85 ? Theme.orange : Theme.textSecondary)
+                            .fill(fraction > 0.85 ? Theme.red : Theme.textSecondary)
                             .frame(width: geo.size.width * min(1, max(0.02, fraction)))
                             .animation(Theme.Motion.spring, value: fraction)
                     }
@@ -535,7 +535,7 @@ private struct ProposalCard: View {
                 if let cost = proposal.estimatedCostUSD {
                     Text(String(format: "≈ $%.2f", cost))
                         .font(Theme.Fonts.mono(12, .medium))
-                        .foregroundStyle(overBudget ? Theme.orange : Theme.textSecondary)
+                        .foregroundStyle(overBudget ? Theme.red : Theme.textSecondary)
                 }
                 if let minutes = proposal.estimatedMinutes {
                     Text("≈ \(Int(minutes)) min")
@@ -789,7 +789,7 @@ private struct DispatchComposer: View {
                 }
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .tint(Theme.ochre)
+                .tint(Theme.green)
                 .foregroundStyle(Theme.textTertiary)
                 .help("Vorschläge ohne Rückfrage sofort starten")
                 Spacer()

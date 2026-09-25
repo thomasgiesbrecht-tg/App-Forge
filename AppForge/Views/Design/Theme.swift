@@ -1,7 +1,8 @@
 import CoreText
 import SwiftUI
 
-/// „Aura dunkel“ – reines Schwarz, Graustufen, sparsam Orange (arbeitet · deine Aktion) und Grün (fertig).
+/// „Aura dunkel“ – reines Schwarz und Graustufen. Arbeit wird weiß angezeigt, Grün heißt fertig,
+/// Rot heißt Fehler oder Problem. Orange nur noch, wenn du selbst etwas tun musst.
 enum Theme {
     // MARK: Palette
 
@@ -9,14 +10,19 @@ enum Theme {
     static let raise = Color(hex: 0x0B0B0B)      // Flächen
     static let lift = Color(hex: 0x141414)       // Hover, Eingaben, eigene Nachrichten
     static let line = Color(hex: 0x1E1E1E)       // Linien
+    /// Nur für „braucht dich“ (Freigaben, fehlende Einstellung).
     static let orange = Color(hex: 0xFF8A33)
     static let green = Color(hex: 0x4CD97B)
+    static let red = Color(hex: 0xF2555A)
+    /// Arbeitet gerade · Hauptaktion – bewusst neutral statt farbig.
+    static let active = Color(hex: 0xE6E6E1)
 
     static let textPrimary = Color(hex: 0xF2F2F0)
     static let textSecondary = Color(hex: 0x8C8C8C)
     static let textTertiary = Color(hex: 0x555555)
-    static let accent = orange
-    static let danger = orange
+    static let accent = green
+    static let attention = orange
+    static let danger = red
     static let success = green
     static let hairline = line
 
@@ -29,8 +35,8 @@ enum Theme {
     static let sage = green
     static let bark = raise
     static let ember = lift
-    static let clay = orange
-    static let ochre = orange
+    static let clay = red
+    static let ochre = active
     static let sand = Color(hex: 0xD9D9D6)
     static let bone = textPrimary
     static let ash = textSecondary

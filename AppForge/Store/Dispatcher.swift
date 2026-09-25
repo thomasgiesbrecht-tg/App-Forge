@@ -56,7 +56,8 @@ struct Mission: Codable, Identifiable, Hashable, Sendable {
 
 /// Eintrag im Ereignisticker der Live-Ansicht.
 struct MissionEvent: Identifiable, Hashable, Sendable {
-    enum Tone: Sendable { case neutral, good, attention }
+    /// attention = du musst etwas tun (orange) · problem = Fehler oder Abbruch (rot)
+    enum Tone: Sendable { case neutral, good, attention, problem }
     let id = UUID()
     let date = Date()
     var source: String
@@ -342,7 +343,7 @@ final class Dispatcher {
             let deps = missions.filter { (mission.dependsOn ?? []).contains($0.id) }
             if deps.contains(where: { $0.state.isFinished && $0.state != .done }) {
                 update(mission.id) { $0.state = .cancelled; $0.activity = "übersprungen – ein Vorgänger ist nicht fertig geworden"; $0.endedAt = .now }
-                log(mission.title, "übersprungen – Vorgänger nicht fertig", .attention)
+                log(mission.title, "übersprungen – Vorgänger nicht fertig", .problem)
             } else if deps.allSatisfy({ $0.state == .done }) {
                 await start(mission.id)
             } else {
@@ -388,13 +389,13 @@ final class Dispatcher {
             if let fraction = current.budgetFraction, fraction >= 1 {
                 try? await client.abort(sessionID: mission.sessionID, directory: directory)
                 update(mission.id) { $0.state = .stoppedBudget; $0.endedAt = .now }
-                log(mission.title, "gestoppt – Budget erreicht", .attention)
+                log(mission.title, "gestoppt – Budget erreicht", .problem)
                 continue
             }
             if let fraction = current.timeFraction, fraction >= 1 {
                 try? await client.abort(sessionID: mission.sessionID, directory: directory)
                 update(mission.id) { $0.state = .stoppedTime; $0.endedAt = .now }
-                log(mission.title, "gestoppt – Zeit abgelaufen", .attention)
+                log(mission.title, "gestoppt – Zeit abgelaufen", .problem)
                 continue
             }
 
@@ -422,7 +423,7 @@ final class Dispatcher {
                     $0.endedAt = .now
                 }
                 if lastError == nil { log(mission.title, "fertig · \(String(format: "$%.3f", spent))", .good) }
-                else { log(mission.title, "fehlgeschlagen", .attention) }
+                else { log(mission.title, "fehlgeschlagen", .problem) }
             }
         }
         reportConflicts()
@@ -432,10 +433,10 @@ final class Dispatcher {
     private func reportChanges(of mission: Mission, old: MissionInsights?, new: MissionInsights) {
         if let build = new.build, build.time > (old?.build?.time ?? 0) {
             log(mission.title, build.ok ? "Build erfolgreich" : "Build fehlgeschlagen\(build.errors.map { " · \($0) Fehler" } ?? "")",
-                build.ok ? .good : .attention)
+                build.ok ? .good : .problem)
         }
         if let tests = new.tests, tests.time > (old?.tests?.time ?? 0) {
-            log(mission.title, new.testsLabel ?? "Tests gelaufen", tests.ok ? .good : .attention)
+            log(mission.title, new.testsLabel ?? "Tests gelaufen", tests.ok ? .good : .problem)
         }
     }
 
@@ -454,7 +455,7 @@ final class Dispatcher {
             for (file, owners) in conflicts(in: group) {
                 let key = file + owners.sorted().joined()
                 guard reportedConflicts.insert(key).inserted else { continue }
-                log(owners.joined(separator: " & "), "ändern beide \(file)", .attention)
+                log(owners.joined(separator: " & "), "ändern beide \(file)", .problem)
             }
         }
     }
