@@ -114,6 +114,14 @@ struct SidebarView: View {
                                 .truncationMode(.middle)
                         }
                         Spacer(minLength: 0)
+                        let spent = store.ledger.total(for: path)
+                        if spent > 0 {
+                            Text(Money.format(spent))
+                                .font(Theme.Fonts.mono(10.5))
+                                .foregroundStyle(isSelected ? Theme.textSecondary : Theme.textTertiary)
+                                .help("Bisher für diese App ausgegeben – Chats, Aufträge, Unteragenten und Medien")
+                                .contentTransition(.numericText())
+                        }
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)

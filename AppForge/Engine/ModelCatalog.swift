@@ -100,22 +100,36 @@ enum ModelCatalog {
 
     struct Experience: Sendable {
         var runs = 0
+        /// Allein geschafft – ohne Übergabe an ein stärkeres Modell.
         var succeeded = 0
+        /// Musste an ein stärkeres Modell übergeben.
+        var escalated = 0
         var totalCost = 0.0
+        var inputTokens = 0.0
+        var cachedTokens = 0.0
+
+        var averageCost: Double { runs > 0 ? totalCost / Double(runs) : 0 }
+        var cacheRate: Double? { inputTokens + cachedTokens > 0 ? cachedTokens / (inputTokens + cachedTokens) : nil }
 
         var summary: String {
-            let average = runs > 0 ? totalCost / Double(runs) : 0
-            return "\(runs) Aufträge, \(succeeded) erfolgreich, Ø \(String(format: "$%.3f", average))"
+            var text = "\(runs) Aufträge, \(succeeded) allein geschafft"
+            if escalated > 0 { text += ", \(escalated)× übergeben" }
+            text += ", Ø \(Money.format(averageCost))"
+            if let cacheRate { text += ", Zwischenspeicher \(Int(cacheRate * 100)) %" }
+            return text
         }
     }
 
     static func experience(from missions: [Mission]) -> [String: Experience] {
         var result: [String: Experience] = [:]
-        for mission in missions where mission.state.isFinished {
+        for mission in missions where mission.state.isFinished && mission.state != .cancelled {
             var exp = result[mission.model, default: Experience()]
             exp.runs += 1
-            if mission.state == .done { exp.succeeded += 1 }
+            if mission.state == .done && mission.escalatedModel == nil { exp.succeeded += 1 }
+            if mission.escalatedModel != nil { exp.escalated += 1 }
             exp.totalCost += mission.spentUSD
+            exp.inputTokens += mission.inputTokens ?? 0
+            exp.cachedTokens += mission.cachedTokens ?? 0
             result[mission.model] = exp
         }
         return result

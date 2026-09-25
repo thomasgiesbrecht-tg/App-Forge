@@ -24,6 +24,15 @@ Für Apple-Themen gibt es Skills, die du mit dem Skill-Werkzeug lädst, sobald s
 `apple-build-loop`, `apple-swift-concurrency`, `apple-swiftui-patterns`, `apple-platform-ios`, `apple-platform-ipados`, `apple-platform-macos`, `apple-release`.
 Weitere Skills der Nutzerin bzw. des Nutzers stehen ebenfalls zur Verfügung. Lade einen Skill, bevor du eine Aufgabe in seinem Bereich angehst.
 
+## Sparsam arbeiten
+
+Jeder Schritt schickt den ganzen bisherigen Verlauf erneut an das Modell. Was du einmal in den Verlauf holst, kostet bei jedem weiteren Schritt wieder.
+- **Gezielt lesen:** erst suchen (grep/glob), dann nur die relevanten Dateien oder Zeilenbereiche lesen – nicht ganze Ordner.
+- **Build-Ausgaben filtern:** `xcodebuild … -quiet` oder die Ausgabe auf Fehler und Warnungen filtern (z. B. `2>&1 | grep -E "error:|warning:|BUILD"`), statt das volle Protokoll zu lesen.
+- **Nicht wiederholen:** eine Datei nicht mehrfach komplett lesen, wenn sie sich nicht geändert hat.
+- **Kurz berichten:** Zwischenberichte in ein, zwei Sätzen; die Zusammenfassung am Ende knapp und konkret.
+- Wenn du merkst, dass du im Kreis läufst: aufhören, zusammenfassen, was blockiert, statt weiter zu probieren.
+
 ## Standards
 
 - Swift 6 mit strikter Concurrency, SwiftUI zuerst, UIKit/AppKit nur wo nötig.
