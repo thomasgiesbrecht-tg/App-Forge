@@ -50,3 +50,25 @@ Resolve Studio läuft auf **demselben Mac** wie AppForge. Standard-Freigabemodus
 
 ## Prompt für den lokalen Chat
 > Hol den Branch `claude/gallant-wozniak-t6beuu` (`git fetch && git checkout claude/gallant-wozniak-t6beuu`) und lies `docs/uebergabe-davinci.md`. Arbeite die offenen Punkte 1–5 ab: bauen, API-Namen im Skill gegen die README.txt der installierten Resolve-Version prüfen, Verbindung zu Resolve Studio testen, die Freigabe-Sicherung prüfen und die beiden DaVinci-Agenten in AppForge ausprobieren. Korrigiere, was nicht stimmt, committe auf denselben Branch und berichte, was funktioniert und was nicht.
+
+## Ergebnis der lokalen Session (25.09.2026)
+
+Getestet auf dem Mac mit DaVinci Resolve Studio **21.1.0.14**, Projekt „New Project 8“, Modell DeepSeek Flash.
+
+1. **Bauen:** `main` in den Branch zusammengeführt (ohne Konflikte), Release-Build ohne Fehler und ohne Warnungen in den neuen Dateien.
+2. **API-Namen:** In 21.1 gibt es statt `README.txt` jetzt `README.md`, `CHANGELOG.md` und die vollständige Typbeschreibung `DaVinciResolveScript.pyi`. Alle 62 Aufrufe im Skill abgeglichen; Fusion-Aufrufe gegen `fusion_api.pyi` und live geprüft. Korrigiert:
+   - `GetPreClutNodeGraph`/`GetPostClutNodeGraph` → `GetPreClipNodeGraph`/`GetPostClipNodeGraph`
+   - `timeline.ApplyGradeFromDRX(pfad, modus, items)` → `item.GetNodeGraph().ApplyGradeFromDRX(pfad, modus)`
+   - `SetCDL`: `NodeIndex` ist eine Zahl, `Saturation` eine Kommazahl
+   - `AddTool("Blur", -32768, -32768)` → `AddTool("Blur", False, -32768, -32768)` (Signatur id, defsettings, x, y; die alte Form funktioniert noch, Überladungen sind aber seit 21.1 veraltet)
+   - Format von `ExportStills` ist in 21.1 nicht dokumentiert – Hinweis ergänzt
+   - neu: Abkürzungen `resolve.GetCurrentProject()` usw., Verbindungsprüfung per `GetConnectedOutput()`, `GetCurrentVideoItem()` folgt dem Abspielkopf, die einzige Comp eines Clips lässt sich per API nicht löschen, Python kann beim Beenden mit Exit 139 abstürzen
+   - Bestätigt: `ExportCurrentFrameAsStill`, `GetNodeGraph().SetLUT`, `GetSetting` mit `colorScienceMode`/`colorSpaceTimeline`/`colorSpaceOutput`, `ConnectInput`, `AddModifier`, `SetExpression`, `GetToolList`, `SetAttrs`/`GetAttrs`
+3. **Verbindung:** funktioniert, sobald „External scripting using“ auf **Local** gespeichert ist – mit dem Python von macOS (3.9) wie mit Resolves eigenem (3.14).
+4. **Freigabe-Sicherung:** OpenCode schickt in `patterns` den **ganzen** Befehl samt Heredoc (im Test 57 Zeilen) und zusätzlich `metadata.command`. AppForge prüft jetzt beides. Neu als riskant: `SetSetting(` (Projekteinstellungen ändern).
+   - Bekannte Lücke: Schreibt ein Agent ein Skript erst in eine Datei und startet es mit `python3 datei.py`, sieht die Prüfung den Inhalt nicht. Der Skill verlangt Heredocs; technisch verhindert wird es nicht.
+5. **Praxistest** (über eine Test-Engine mit denselben Agentendateien):
+   - `davinci-color` „Projekt/Timeline/Color Management prüfen“: korrekt, ein Skript, 0,28 ct, 18 s.
+   - Lösch-Auftrag: Agent startete selbst mit `DAVINCI_FREIGABE=1`, AppForge-Regel erkannte ihn als riskant → abgelehnt, nichts gelöscht.
+   - `davinci-fusion` „Blur zwischen MediaIn und MediaOut“: gebaut und per Comp-Export und Einzelbild geprüft, 0,87 ct, 66 s. Zwei Zwischenschritte scheiterten an der Verbindungsabfrage (jetzt im Skill beschrieben).
+   - Die Freigabe-Leiste in der AppForge-Oberfläche selbst wurde nicht angeklickt – das Verhalten entspricht aber der geprüften Regel.

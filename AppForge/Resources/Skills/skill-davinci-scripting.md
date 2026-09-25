@@ -49,7 +49,9 @@ Regeln:
 - **Knapp ausgeben.** Nur das nötige JSON, keine kompletten Objekte oder Einstellungslisten.
 - **Rückgabewerte prüfen.** Viele Aufrufe scheitern still und geben `None` oder `False` zurück – jedes Ergebnis auswerten und melden.
 - Indizes sind **1-basiert** (Timelines, Spuren, Nodes, Fusion-Comps).
-- Die Doku nicht komplett lesen, sondern gezielt durchsuchen: `grep -n -i "SetCDL" "$RESOLVE_SCRIPT_API/README.txt"`. Resolve 21.1 bringt 20 neue API-Aufrufe – bei Bedarf dort nachsehen.
+- Die Doku nicht komplett lesen, sondern gezielt durchsuchen. Seit 21.1 liegen dort `README.md`, `CHANGELOG.md` und die vollständige API-Beschreibung `DaVinciResolveScript.pyi` (mit Signaturen): `grep -n -i "def SetCDL" "$RESOLVE_SCRIPT_API/DaVinciResolveScript.pyi"`. Die Fusion-API (`AddTool`, `ConnectInput` …) steht nicht darin.
+- Seit 21.1 gibt es Abkürzungen: `resolve.GetCurrentProject()`, `resolve.GetCurrentTimeline()`, `resolve.GetMediaPool()`, `resolve.GetGallery()`.
+- Überladene Aufrufe sind seit 21.1 veraltet: Argumente in der Reihenfolge der Signatur übergeben.
 
 ## 3. Prüfen (nur lesen)
 - Projekt und Timelines: `project.GetTimelineCount()`, `project.GetTimelineByIndex(i)`, `timeline.GetTrackCount("video")`, `timeline.GetItemListInTrack("video", n)`, `timeline.GetCurrentVideoItem()`, `timeline.GetCurrentTimecode()`.
@@ -61,26 +63,26 @@ Regeln:
 ## 4. Color-Page
 - Seite wechseln: `resolve.OpenPage("color")`.
 - **Vorher sichern:** `item.AddVersion("vorher-<kurz>", 0)` oder `timeline.GrabStill()`.
-- CDL: `item.SetCDL({"NodeIndex": "1", "Slope": "1.0 1.0 1.0", "Offset": "0 0 0", "Power": "1.0 1.0 1.0", "Saturation": "1.0"})`.
+- CDL: `item.SetCDL({"NodeIndex": 1, "Slope": "1.0 1.0 1.0", "Offset": "0 0 0", "Power": "1.0 1.0 1.0", "Saturation": 1.0})` – `NodeIndex` ist eine Zahl, `Saturation` eine Kommazahl, Slope/Offset/Power sind Texte mit drei Werten.
 - LUT/DCTL: Datei in den LUT-Ordner legen, `project.RefreshLUTList()`, dann `item.GetNodeGraph().SetLUT(nodeIndex, pfad)`. Ob ein DCTL per `SetLUT` greift, erst an einem Test-Node prüfen.
-- Übertragen: `quelle.CopyGrades([ziel1, ziel2])`; `timeline.ApplyGradeFromDRX(pfad, modus, [items])` (Modus 0 = ohne Keyframes, 1 = nach Quell-Timecode, 2 = nach Startframe).
+- Übertragen: `quelle.CopyGrades([ziel1, ziel2])`; eine DRX-Datei je Clip über dessen Node-Graph: `item.GetNodeGraph().ApplyGradeFromDRX(pfad, modus)` (Modus 0 = ohne Keyframes, 1 = nach Quell-Timecode, 2 = nach Startframe).
 - Export: `item.ExportLUT(resolve.EXPORT_LUT_33PTCUBE, pfad)`.
-- Gruppen: `project.GetColorGroupsList()`, `project.AddColorGroup(name)`, `item.AssignToColorGroup(gruppe)`, `gruppe.GetPreClutNodeGraph()`, `gruppe.GetPostClutNodeGraph()`.
-- Gallery: `project.GetGallery()` → `GetGalleryStillAlbums()`, `GetGalleryPowerGradeAlbums()`; Album `GetStills()`, `ExportStills(stills, ordner, präfix, "drx")`, `ImportStills([pfade])`.
+- Gruppen: `project.GetColorGroupsList()`, `project.AddColorGroup(name)`, `item.AssignToColorGroup(gruppe)`, `gruppe.GetPreClipNodeGraph()`, `gruppe.GetPostClipNodeGraph()`, `gruppe.GetClipsInTimeline()`.
+- Gallery: `project.GetGallery()` → `GetGalleryStillAlbums()`, `GetGalleryPowerGradeAlbums()`; Album `GetStills()`, `ExportStills(stills, ordner, präfix, format)`, `ImportStills([pfade])`. Das Format ist in 21.1 nicht dokumentiert; frühere Versionen nannten `dpx`, `cin`, `tif`, `jpg`, `png`, `ppm`, `bmp`, `xpm` und `drx` – Rückgabewert prüfen.
 - Weitere Aufrufe: `graph.SetNodeEnabled(i, True)`, `graph.ResetAllGrades()`, `item.CreateMagicMask("F")`.
 
 **Grenzen:** Farbräder, Kurven, Qualifier und Windows lassen sich per API nicht einstellen, und neue Nodes lassen sich nicht frei anlegen. Das gilt genauso für den nativen MCP, denn der baut auf derselben API auf. Ausweichen auf CDL, LUT/DCTL und vorbereitete PowerGrades (DRX) – oder den Handgriff für den Nutzer genau beschreiben.
 
 ## 5. Fusion
 ```python
-item = timeline.GetCurrentVideoItem()
+item = timeline.GetCurrentVideoItem()   # einmal merken – folgt dem Abspielkopf
 comp = item.GetFusionCompByIndex(1) if item.GetFusionCompCount() > 0 else item.AddFusionComp()
 comp.Lock(); comp.StartUndo("AppForge")
 try:
     media_in = comp.FindTool("MediaIn1")
     media_out = comp.FindTool("MediaOut1")
-    blur = comp.AddTool("Blur", -32768, -32768)   # -32768 = automatisch platzieren
-    blur.SetAttrs({"TOOLS_Name": "Weichzeichner"})
+    blur = comp.AddTool("Blur", False, -32768, -32768)   # (id, defsettings, x, y); -32768 = automatisch platzieren
+    blur.SetAttrs({"TOOLS_Name": "Weichzeichner"})       # gibt nichts zurück – mit GetAttrs("TOOLS_Name") prüfen
     blur.ConnectInput("Input", media_in)
     blur.SetInput("XBlurSize", 4.0)
     media_out.ConnectInput("Input", blur)
@@ -90,6 +92,10 @@ try:
 finally:
     comp.EndUndo(True); comp.Unlock()
 ```
+- **Den Clip festhalten:** `timeline.GetCurrentVideoItem()` liefert den Clip unter dem Abspielkopf. Bewegt der Nutzer ihn, zeigt ein späterer Aufruf auf einen anderen Clip. Den Clip deshalb am Anfang merken bzw. über `timeline.GetItemListInTrack("video", n)` und Name/Start eindeutig finden.
+- **Die einzige Comp eines Clips lässt sich per API nicht löschen:** `DeleteFusionCompByName` gibt dann `False` zurück. Rückgängig machen heißt: vorher `item.ExportFusionComp(pfad, 1)`, zum Zurücksetzen die eigenen Werkzeuge mit `tool.Delete()` entfernen und `MediaOut1` wieder direkt mit `MediaIn1` verbinden.
+- Nach längeren Skripten kann Python beim Beenden mit „Segmentation fault“ (Exit 139) abstürzen – das betrifft nur das Skript, nicht Resolve. Ergebnisse deshalb mit `print(..., flush=True)` ausgeben, bevor das Skript endet.
+- **Verbindungen prüfen:** `tool.Input.GetConnectedOutput()` liefert den Ausgang davor (`None`, wenn nichts verbunden ist); `.GetTool().GetAttrs("TOOLS_Name")` nennt das Werkzeug. So lässt sich nach dem Bauen die Kette MediaIn → … → MediaOut in einem Skript nachweisen.
 - Namen der Eingänge herausfinden: `[i.GetAttrs("INPS_ID") for i in tool.GetInputList().values()]`.
 - Ausdrücke: `tool.<Eingang>.SetExpression("…")`, z. B. `blur.XBlurSize.SetExpression("time / 10")`; sparsam einsetzen.
 - Neue Clips in der Timeline: `timeline.InsertFusionCompositionIntoTimeline()`, `timeline.InsertFusionTitleIntoTimeline("Text+")`, `timeline.InsertFusionGeneratorIntoTimeline(name)`, `timeline.CreateFusionClip([items])`.

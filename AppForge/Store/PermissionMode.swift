@@ -43,7 +43,10 @@ enum PermissionMode: String, CaseIterable, Identifiable, Sendable {
                  "skill", "webfetch", "websearch", "codesearch", "task", "lsp":
                 return true
             case "bash":
-                return !request.patterns.contains(where: Self.isRisky)
+                // Die Muster enthalten normalerweise den ganzen Befehl samt Heredoc; zur Sicherheit
+                // wird zusätzlich der vollständige Befehl aus den Metadaten geprüft.
+                let command = request.metadata?["command"]?.stringValue
+                return !(request.patterns + [command].compactMap { $0 }).contains(where: Self.isRisky)
             default:
                 // z. B. external_directory, doom_loop – lieber nachfragen
                 return false
@@ -59,6 +62,8 @@ enum PermissionMode: String, CaseIterable, Identifiable, Sendable {
         // DaVinci Resolve: von den DaVinci-Agenten gesetzter Marker und zerstörerische API-Aufrufe
         #"\bDAVINCI_FREIGABE=1\b"#,
         #"\b(Delete(Timelines|Clips|Folders|VersionByName|Stills|ColorGroup|FusionCompByName|GalleryStillAlbum|Project|RenderJob|AllRenderJobs)|ResetAllGrades|StartRendering|CloseProject)\b"#,
+        // Projekt- und Timeline-Einstellungen ändern (Color Management, Auflösung …)
+        #"\bSetSetting\s*\("#,
     ]
 
     static func isRisky(_ command: String) -> Bool {
