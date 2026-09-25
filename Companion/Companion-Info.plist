@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.captureworks.AppForge.Companion</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>appforge-companion</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_appforge._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AppForge sucht deinen Mac im WLAN, um Ideen, Chats und Aufträge zu übertragen.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Zum Einsprechen von Ideen und Nachrichten.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Deine Sprache wird in Text umgewandelt – wenn möglich direkt auf dem iPhone.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
+</dict>
+</plist>

@@ -1,9 +1,11 @@
 import CryptoKit
 import Foundation
+import Observation
 
 /// Schickt Benachrichtigungen und Live-Aktivitäts-Updates direkt vom Mac an Apple (APNs) – ohne eigenen Server.
 /// Braucht einmalig einen Push-Schlüssel (.p8) aus dem Apple-Developer-Account.
 @MainActor
+@Observable
 final class PushService {
     struct Credentials: Codable, Equatable {
         var keyID: String
@@ -28,7 +30,7 @@ final class PushService {
     private static var keyFile: URL { EngineConfig.supportDirectory.appending(path: "apns-key.json") }
 
     private(set) var credentials: Credentials?
-    private var cachedToken: (value: String, created: Date)?
+    @ObservationIgnored private var cachedToken: (value: String, created: Date)?
     private(set) var lastError: String?
 
     init() {
