@@ -65,7 +65,7 @@ struct MessageRow: View {
             items.append("\(Int(tokens.input + tokens.output)) Tokens")
         }
         if let cost = message.info.cost, cost > 0 {
-            items.append(cost.formatted(.currency(code: "USD").precision(.fractionLength(4))))
+            items.append(Money.format(cost, precise: true))
         }
         return items.joined(separator: "  ·  ")
     }
