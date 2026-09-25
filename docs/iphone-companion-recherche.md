@@ -84,3 +84,28 @@ Stand: September 2026. Grundlage: der AppForge-Code auf `main` und eine Web-Rech
 - Tailscale Serve: https://tailscale.com/docs/features/tailscale-serve
 - App Review Guidelines: https://developer.apple.com/app-store/review/guidelines/
 - Mitgliedschaften: https://developer.apple.com/support/compare-memberships/
+
+## 8. Entscheidungen
+
+- **Bezahlter Apple-Developer-Account ist vorhanden.** APNs, Live-Activity-Push, CloudKit, TestFlight und Ad-hoc-Verteilung sind damit möglich.
+- **Gebaute Apps kommen per Installations-Link aufs iPhone** (OTA, `itms-services`).
+
+### So läuft die OTA-Installation
+
+1. Auf dem iPhone tippst du auf „Installieren“. Die Companion-App schickt den Auftrag an die Bridge in AppForge.
+2. Der Mac baut und exportiert die App:
+   - `xcodebuild archive`
+   - danach `xcodebuild -exportArchive` mit der Methode `release-testing` (früher „ad-hoc“) und `-allowProvisioningUpdates`, damit Xcode fehlende Profile selbst anlegt.
+   - Voraussetzung: Auf dem Mac ist in Xcode der Developer-Account angemeldet. Alternativ geht ein App-Store-Connect-API-Key.
+3. AppForge legt `App.ipa`, `manifest.plist` und die Icons in einen Ordner und stellt ihn per HTTPS bereit:
+   - Unterwegs über `tailscale serve`. Das `*.ts.net`-Zertifikat ist gültig, iOS verlangt HTTPS mit vertrauenswürdigem Zertifikat.
+   - Im Tailnet müssen MagicDNS und HTTPS-Zertifikate aktiviert sein.
+4. Das iPhone öffnet `itms-services://?action=download-manifest&url=https://<mac>.<tailnet>.ts.net/…/manifest.plist`, und iOS installiert die App nach einer Bestätigung.
+
+### Voraussetzungen und Stolpersteine
+
+- Die UDID des iPhones muss im Developer-Account registriert sein (einmalig). Das passiert automatisch, sobald das iPhone einmal in Xcode verbunden war.
+- Jede neue App (Bundle-ID) braucht ein eigenes Profil. `-allowProvisioningUpdates` erledigt das, solange kein Projekt auf manuelle Signierung steht.
+- Ad-hoc-signierte Apps brauchen keinen Entwicklermodus auf dem iPhone, Development-signierte schon.
+- Noch zu prüfen: ob sich `itms-services://` direkt aus der Companion-App öffnen lässt oder nur über Safari. Die Rückfallebene ist, den Link in Safari zu öffnen.
+- Ad-hoc-Profile gelten ein Jahr, bzw. bis das Zertifikat abläuft.
