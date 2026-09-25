@@ -440,7 +440,11 @@ final class CompanionBridge {
 
     /// Sucht Xcode-Projekte in den üblichen Ordnern, die noch nicht in AppForge sind.
     nonisolated private static func discoverProjects(excluding existing: Set<String>) async -> [DiscoveredProject] {
-        await Task.detached(priority: .utility) {
+        await Task.detached(priority: .utility) { scanForProjects(excluding: existing) }.value
+    }
+
+    /// Synchron, weil `FileManager.DirectoryEnumerator` nicht in asynchronem Kontext durchlaufen werden darf.
+    nonisolated private static func scanForProjects(excluding existing: Set<String>) -> [DiscoveredProject] {
             let fm = FileManager.default
             let home = fm.homeDirectoryForCurrentUser
             let roots = ["Developer", "Projects", "Projekte", "Code", "GitHub", "Xcode", "Documents", "Desktop"]
@@ -464,7 +468,6 @@ final class CompanionBridge {
                 }
             }
             return found.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        }.value
     }
 
     // MARK: Chats

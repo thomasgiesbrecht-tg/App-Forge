@@ -95,8 +95,9 @@ final class IdeaStore {
     /// Ordnet alle Ideen ein, die noch nicht (erfolgreich) eingeordnet wurden – z. B. nach dem Start der Engine.
     func analyzeOutstanding() async {
         guard store?.client != nil, effectiveModel != nil else { return }
-        let outstanding = ideasByProject.values.flatMap { $0 }
-            .filter { $0.status == .open && ($0.analysis == .pending || $0.analysis == .failed || $0.analysis == .off) }
+        let waiting: Set<Idea.Analysis> = [.pending, .failed, .off]
+        let all: [Idea] = ideasByProject.values.flatMap { $0 }
+        let outstanding = all.filter { idea in idea.status == .open && waiting.contains(idea.analysis) }
         for idea in outstanding {
             await analyze(idea.id, projectID: idea.projectID)
         }
