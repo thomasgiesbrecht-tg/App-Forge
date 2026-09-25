@@ -56,6 +56,9 @@ enum PermissionMode: String, CaseIterable, Identifiable, Sendable {
         #"curl[^|]*\|\s*(ba|z)?sh"#, #"\bchmod\s+-R"#, #"\bkillall\b"#, #"simctl\s+(erase|delete)"#,
         #"\b(altool|notarytool|fastlane)\b"#, #"\bdd\s+if="#, #">\s*/dev/"#, #"\bmkfs"#, #"defaults\s+delete"#,
         #"\bbrew\s+(uninstall|remove)"#, #"\bnpm\s+publish"#, #"\bdiskutil\b"#, #"\blaunchctl\b"#,
+        // DaVinci Resolve: von den DaVinci-Agenten gesetzter Marker und zerstörerische API-Aufrufe
+        #"\bDAVINCI_FREIGABE=1\b"#,
+        #"\b(Delete(Timelines|Clips|Folders|VersionByName|Stills|ColorGroup|FusionCompByName|GalleryStillAlbum|Project|RenderJob|AllRenderJobs)|ResetAllGrades|StartRendering|CloseProject)\b"#,
     ]
 
     static func isRisky(_ command: String) -> Bool {

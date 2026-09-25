@@ -13,6 +13,13 @@ Alles läuft über kurze Python-Skripte im Terminal – kein MCP nötig. Das spa
 - `python3` (kommt mit Xcode bzw. den Command Line Tools).
 - Liefert `scriptapp` den Wert `None`, liegt es fast immer an einem der drei Punkte – sag dem Nutzer, welcher es ist.
 
+### Resolve auf einem anderen Rechner
+Läuft Resolve nicht auf dem Mac mit AppForge (z. B. auf einem PC, den der Nutzer fernsteuert):
+- Auf dem Resolve-Rechner „External scripting using“ auf **Network** stellen und Resolve in dessen Firewall fürs lokale Netz freigeben.
+- Auf dem Mac braucht Python trotzdem `fusionscript.so` – das kommt mit einer Resolve-Installation auf dem Mac (die kostenlose Version genügt vermutlich; beim ersten Mal prüfen).
+- IP-Adresse beim Nutzer erfragen und als `export RESOLVE_HOST=…` vor das Skript setzen – das Grundgerüst verbindet sich dann dorthin.
+- **Alle Pfade gelten auf dem Resolve-Rechner:** LUTs, exportierte Stills, Comp-Exporte und Einzelbilder landen dort, nicht auf dem Mac. Für die Sichtprüfung einen freigegebenen Ordner nutzen, den beide Rechner erreichen.
+
 ## 2. Grundgerüst
 Führe Skripte als Heredoc aus: Der Nutzer sieht den ganzen Code in der Freigabe, und es bleiben keine Dateien liegen.
 
@@ -21,11 +28,12 @@ export RESOLVE_SCRIPT_API="/Library/Application Support/Blackmagic Design/DaVinc
 export RESOLVE_SCRIPT_LIB="/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Libraries/Fusion/fusionscript.so"
 export PYTHONPATH="$PYTHONPATH:$RESOLVE_SCRIPT_API/Modules/"
 python3 - <<'PY'
-import json, sys
+import json, os, sys
 import DaVinciResolveScript as dvr
-resolve = dvr.scriptapp("Resolve")
+host = os.environ.get("RESOLVE_HOST")  # nur bei Resolve auf einem anderen Rechner
+resolve = dvr.scriptapp("Resolve", host) if host else dvr.scriptapp("Resolve")
 if not resolve:
-    sys.exit("Keine Verbindung: Läuft Resolve Studio, und steht Externes Scripting auf „Lokal“?")
+    sys.exit("Keine Verbindung: Läuft Resolve Studio, und steht External scripting auf Local (bzw. Network)?")
 project = resolve.GetProjectManager().GetCurrentProject()
 timeline = project.GetCurrentTimeline() if project else None
 out = {"version": resolve.GetVersionString(), "seite": resolve.GetCurrentPage(),
@@ -93,4 +101,6 @@ finally:
 Ohne Studio ist keine Verbindung von außen möglich. Dann bleibt nur Lua innerhalb von Resolve: Das Skript nach `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility/<name>.lua` schreiben – der Nutzer startet es über Workspace → Scripts. Dort ist `resolve` direkt verfügbar (sonst `Resolve()`), Fusion über `resolve:Fusion()`.
 
 ## 7. Sicherheit
-Vor diesen Aktionen ausdrücklich nachfragen: Löschen (Timelines, Clips, Versionen, Stills, Color-Gruppen, Comps, Nodes), Grades zurücksetzen oder auf viele Clips übertragen, Projekteinstellungen ändern, Projekte schließen und Renderaufträge starten. Vor größeren Änderungen `timeline.DuplicateTimeline(name)`, eine neue Grade-Version oder einen Comp-Export als Sicherung anlegen.
+AppForge läuft meist im Modus „Automatisch“: Normale Skripte laufen ohne Rückfrage. Skripte mit riskanten Schritten beginnst du deshalb **immer** mit `DAVINCI_FREIGABE=1`, z. B. `DAVINCI_FREIGABE=1 python3 - <<'PY'` – dann zeigt AppForge dem Nutzer vorher die Freigabe. Trenne solche Schritte vom Rest, damit nur sie eine Freigabe brauchen.
+
+Riskant sind: Löschen (Timelines, Clips, Versionen, Stills, Color-Gruppen, Comps, Nodes), Grades zurücksetzen oder auf viele Clips übertragen, Projekteinstellungen ändern, Projekte schließen und Renderaufträge starten. Vor größeren Änderungen `timeline.DuplicateTimeline(name)`, eine neue Grade-Version oder einen Comp-Export als Sicherung anlegen.
