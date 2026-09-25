@@ -72,6 +72,7 @@ final class MediaStudio {
                 }
             }
             update(jobID) { $0.status = "wird gespeichert" }
+            store.ledger.record(project: directory, id: "medien-\(jobID)", costUSD: settings.estimatedCost(kind) ?? 0)
             let file = try await download(remote, kind: kind, prompt: prompt)
 
             // Als Nachricht in den Chat – ohne dass eine KI antwortet.

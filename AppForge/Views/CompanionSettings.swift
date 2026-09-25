@@ -86,14 +86,14 @@ struct CompanionSettings: View {
                 if let credentials = bridge.push.credentials {
                     LabeledContent("Schlüssel") { Text("\(credentials.keyID) · Team \(credentials.teamID)") }
                     if let error = bridge.push.lastError {
-                        Text(error).foregroundStyle(Theme.orange)
+                        Text(error).foregroundStyle(Theme.red)
                     }
                     Button("Schlüssel entfernen", role: .destructive) { bridge.push.removeKey() }
                 } else {
                     TextField("Team-ID", text: $teamID)
                     Button("Push-Schlüssel (.p8) wählen …") { importingKey = true }
                         .disabled(teamID.isEmpty)
-                    if let keyError { Text(keyError).foregroundStyle(Theme.orange) }
+                    if let keyError { Text(keyError).foregroundStyle(Theme.red) }
                 }
             } header: {
                 Text("Benachrichtigungen & Live-Aktivitäten")
@@ -124,7 +124,7 @@ struct CompanionSettings: View {
         case .stopped: Text("aus").foregroundStyle(.secondary)
         case .starting: Text("startet …").foregroundStyle(.secondary)
         case .listening(let port): Text("bereit · Port \(port)").foregroundStyle(Theme.green)
-        case .failed(let message): Text(message).foregroundStyle(Theme.orange)
+        case .failed(let message): Text(message).foregroundStyle(Theme.red)
         }
     }
 }

@@ -15,7 +15,7 @@ struct ConnectionBanner: View {
             banner(
                 "\(model.macName) nicht erreichbar" + (waiting > 0 ? " · \(waiting) warten" : ""),
                 detail: "Du kannst trotzdem alles schreiben – es wird gesendet, sobald der Mac wieder da ist.",
-                symbol: "moon.zzz.fill", color: Palette.orange
+                symbol: "moon.zzz.fill", color: Palette.red
             )
             .onTapGesture { model.reconnect() }
         case .unpaired:
@@ -58,7 +58,7 @@ struct Composer: View {
     var body: some View {
         VStack(spacing: 6) {
             if let error = speech.error {
-                Text(error).font(.caption).foregroundStyle(Palette.orange)
+                Text(error).font(.caption).foregroundStyle(Palette.red)
             }
             HStack(alignment: .bottom, spacing: 8) {
                 TextField(placeholder, text: $text, axis: .vertical)
@@ -67,7 +67,7 @@ struct Composer: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.lift))
-                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(speech.isRecording ? Palette.orange : Palette.line))
+                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(speech.isRecording ? Palette.accent : Palette.line))
 
                 Button {
                     Task {
@@ -78,9 +78,9 @@ struct Composer: View {
                     Image(systemName: speech.isRecording ? "waveform" : "mic.fill")
                         .symbolEffect(.variableColor.iterative, isActive: speech.isRecording)
                         .frame(width: 40, height: 40)
-                        .background(Circle().fill(speech.isRecording ? Palette.orange.opacity(0.25) : Palette.lift))
+                        .background(Circle().fill(speech.isRecording ? Palette.accent.opacity(0.25) : Palette.lift))
                 }
-                .foregroundStyle(speech.isRecording ? Palette.orange : Palette.secondary)
+                .foregroundStyle(speech.isRecording ? Palette.accent : Palette.secondary)
 
                 if busy && text.isEmpty, let onStop {
                     Button(action: onStop) {
@@ -88,7 +88,7 @@ struct Composer: View {
                             .frame(width: 40, height: 40)
                             .background(Circle().fill(Palette.lift))
                     }
-                    .foregroundStyle(Palette.orange)
+                    .foregroundStyle(Palette.red)
                 } else {
                     Button {
                         let message = text
@@ -104,7 +104,7 @@ struct Composer: View {
                         Image(systemName: "arrow.up")
                             .fontWeight(.bold)
                             .frame(width: 40, height: 40)
-                            .background(Circle().fill(text.isEmpty ? Palette.lift : Palette.orange))
+                            .background(Circle().fill(text.isEmpty ? Palette.lift : Palette.accent))
                     }
                     .foregroundStyle(text.isEmpty ? Palette.tertiary : Palette.black)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending)
@@ -159,6 +159,3 @@ struct Card<Content: View>: View {
     }
 }
 
-extension Double {
-    var usd: String { formatted(.currency(code: "USD").precision(.fractionLength(self < 1 ? 3 : 2))) }
-}

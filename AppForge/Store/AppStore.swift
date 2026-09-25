@@ -77,6 +77,10 @@ final class AppStore {
     // Zentrale (Startseite)
     let dispatcher = Dispatcher()
     let media = MediaStudio()
+    /// Was jede App bisher gekostet hat.
+    let ledger = CostLedger()
+    /// Projekt, dessen Ereignisse gerade empfangen werden – dorthin werden Kosten gebucht.
+    @ObservationIgnored private var eventDirectory: String?
     var showHome = true
 
     // Ideen je App und die Verbindung zum iPhone
@@ -222,14 +226,35 @@ final class AppStore {
         do {
             client = try await engine.start(binaryOverride: binaryOverride)
             engineState = .running
+            Task { await Money.refreshIfNeeded() }
             await refreshMeta()
             await dispatcher.start()
             if let selectedProject { await openProject(selectedProject) }
             else if let first = projects.first { await openProject(first) }
+            await ensureSmallModel()
             Task { await ideas.analyzeOutstanding() }
         } catch {
             client = nil
             engineState = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Legt beim ersten Start das günstigste Modell für Titel und Zusammenfassungen fest.
+    /// Die Engine liest es nur beim Start – deshalb ein Neustart, aber nur, wenn gerade niemand arbeitet.
+    private func ensureSmallModel() async {
+        guard Savings.smallModel == nil, let cheapest = ModelCatalog.cheapest(from: providers) else { return }
+        Savings.smallModel = cheapest.label
+        try? EngineConfig.write()
+        if dispatcher.runningMissions.isEmpty && !activity.values.contains(where: { $0 == .busy }) {
+            await restartEngine()
+        }
+    }
+
+    /// Lädt den vollständigen Verlauf einer Sitzung neu (z. B. für die Gedanken-Ansicht).
+    func reloadSession(_ sessionID: String, directory: String) async {
+        guard let client else { return }
+        if let envelopes = try? await client.messages(sessionID: sessionID, directory: directory) {
+            messages[sessionID] = envelopes.map { ChatMessage(info: $0.info, parts: $0.parts) }
         }
     }
 
@@ -279,6 +304,19 @@ final class AppStore {
             lastError = error.localizedDescription
         }
         await refreshMeta()
+        if ledger.needsBackfill(path) { Task { await backfillCosts(path) } }
+    }
+
+    /// Einmalig pro Projekt: Kosten aller bisherigen Chats ins Kostenbuch übernehmen (liest nur lokal, kostet nichts).
+    private func backfillCosts(_ path: String) async {
+        guard let client, let all = try? await client.sessions(directory: path) else { return }
+        for session in all {
+            guard let envelopes = try? await client.messages(sessionID: session.id, directory: path) else { continue }
+            for envelope in envelopes where !envelope.info.isUser {
+                ledger.record(project: path, id: envelope.info.id, costUSD: envelope.info.cost ?? 0)
+            }
+        }
+        ledger.markBackfilled(path)
     }
 
     /// Lädt Anbieter/Modelle, Skills und MCP-Status neu.
@@ -588,6 +626,7 @@ final class AppStore {
 
     private func subscribeToEvents(directory: String) {
         eventTask?.cancel()
+        eventDirectory = directory
         guard let client else { return }
         eventTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -607,6 +646,9 @@ final class AppStore {
     private func apply(_ event: ServerEvent) {
         switch event {
         case .messageUpdated(let info):
+            if !info.isUser, let cost = info.cost, let eventDirectory {
+                ledger.record(project: eventDirectory, id: info.id, costUSD: cost)
+            }
             var list = messages[info.sessionID] ?? []
             if let index = list.firstIndex(where: { $0.id == info.id }) {
                 list[index].info = info

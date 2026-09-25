@@ -53,7 +53,7 @@ struct MacView: View {
                             }
                             .disabled(pairingLink.isEmpty)
                         }
-                        if let pairingError { Text(pairingError).foregroundStyle(Palette.orange) }
+                        if let pairingError { Text(pairingError).foregroundStyle(Palette.red) }
                     } header: {
                         Text(model.pairing == nil ? "Koppeln" : "Neu koppeln")
                     }
@@ -103,7 +103,7 @@ struct MacView: View {
         switch model.connection {
         case .connected: Label("verbunden", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.green)
         case .searching: Text("sucht …").foregroundStyle(Palette.secondary)
-        case .offline(let reason): Text(reason.map { "nicht erreichbar (\($0))" } ?? "nicht erreichbar").foregroundStyle(Palette.orange)
+        case .offline(let reason): Text(reason.map { "nicht erreichbar (\($0))" } ?? "nicht erreichbar").foregroundStyle(Palette.red)
         case .unpaired: Text("nicht gekoppelt").foregroundStyle(Palette.secondary)
         }
     }

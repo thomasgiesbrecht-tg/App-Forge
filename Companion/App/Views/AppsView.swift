@@ -36,7 +36,7 @@ struct AppsView: View {
                                                 .foregroundStyle(Palette.black)
                                                 .padding(.horizontal, 5)
                                                 .frame(minWidth: 18, minHeight: 18)
-                                                .background(Capsule().fill(Palette.orange))
+                                                .background(Capsule().fill(Palette.active))
                                                 .offset(x: 6, y: -6)
                                         }
                                     }
@@ -89,7 +89,7 @@ struct AddProjectView: View {
         NavigationStack {
             List {
                 if loading { HStack { ProgressView(); Text("Suche auf dem Mac …").foregroundStyle(Palette.secondary) } }
-                if let error { Text(error).foregroundStyle(Palette.orange) }
+                if let error { Text(error).foregroundStyle(Palette.red) }
                 if !loading && found.isEmpty && error == nil {
                     Text("Keine weiteren Xcode-Projekte gefunden (gesucht in Developer, Projekte, Dokumente, Schreibtisch …).")
                         .foregroundStyle(Palette.secondary)

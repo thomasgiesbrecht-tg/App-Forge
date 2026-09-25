@@ -47,7 +47,7 @@ struct SidebarView: View {
             HStack(spacing: 10) {
                 Image(systemName: "dot.radiowaves.left.and.right")
                     .font(.system(size: 12))
-                    .foregroundStyle(running > 0 ? Theme.orange : (store.showHome ? Theme.textPrimary : Theme.textTertiary))
+                    .foregroundStyle(running > 0 ? Theme.active : (store.showHome ? Theme.textPrimary : Theme.textTertiary))
                     .symbolEffect(.variableColor.iterative, isActive: running > 0)
                 Text("Zentrale")
                     .font(Theme.Fonts.sans(13, store.showHome ? .medium : .regular))
@@ -114,6 +114,14 @@ struct SidebarView: View {
                                 .truncationMode(.middle)
                         }
                         Spacer(minLength: 0)
+                        let spent = store.ledger.total(for: path)
+                        if spent > 0 {
+                            Text(Money.format(spent))
+                                .font(Theme.Fonts.mono(10.5))
+                                .foregroundStyle(isSelected ? Theme.textSecondary : Theme.textTertiary)
+                                .help("Bisher für diese App ausgegeben – Chats, Aufträge, Unteragenten und Medien")
+                                .contentTransition(.numericText())
+                        }
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
@@ -254,7 +262,7 @@ struct EmberDot: View {
             Circle()
                 .fill(Theme.ochre)
                 .frame(width: 6, height: 6)
-                .shadow(color: Theme.orange.opacity(0.6), radius: 2 + 2 * (sin(t * 3) + 1) / 2)
+                .shadow(color: Theme.active.opacity(0.5), radius: 2 + 2 * (sin(t * 3) + 1) / 2)
                 .opacity(0.6 + 0.4 * (sin(t * 3) + 1) / 2)
         }
         .frame(width: 10, height: 10)
@@ -274,9 +282,9 @@ private struct EngineStatusDot: View {
     private var color: Color {
         switch state {
         case .running: Theme.textSecondary
-        case .starting: Theme.orange
+        case .starting: Theme.active
         case .stopped: Theme.textTertiary
-        case .failed: Theme.orange
+        case .failed: Theme.red
         }
     }
 }

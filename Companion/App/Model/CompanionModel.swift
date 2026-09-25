@@ -301,6 +301,7 @@ final class CompanionModel {
         case .snapshot(let snapshot):
             self.snapshot = snapshot
             SharedStore.saveSnapshot(snapshot)
+            if SharedStore.eurPerUsd != snapshot.eurPerUsd { SharedStore.eurPerUsd = snapshot.eurPerUsd }
         case .projects(let projects):
             self.projects = projects
             SharedStore.saveProjects(projects)

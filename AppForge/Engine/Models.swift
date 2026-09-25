@@ -213,7 +213,10 @@ struct ModelInfo: Codable, Identifiable, Hashable, Sendable {
     var cost: Cost?
     var status: String?
     var release_date: String?
+    /// Denkaufwand-Stufen des Modells (z. B. low, medium, high), soweit es welche anbietet.
+    var variants: [String: JSONValue]?
 
+    var variantNames: [String] { variants.map { Array($0.keys) } ?? [] }
     var supportsTools: Bool { capabilities?.toolcall ?? false }
     var supportsImages: Bool { capabilities?.input?.image ?? false }
 }

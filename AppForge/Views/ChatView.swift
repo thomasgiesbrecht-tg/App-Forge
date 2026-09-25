@@ -806,7 +806,7 @@ private struct SlashSuggestions: View {
         case .video: hasImage ? "angehängtes Bild animieren" : "Video erzeugen"
         }
         guard let cost = MediaSettings.current.estimatedCost(kind) else { return action }
-        return action + String(format: " · ≈ $%.2f", cost)
+        return action + " · ≈ " + Money.format(cost)
     }
 }
 

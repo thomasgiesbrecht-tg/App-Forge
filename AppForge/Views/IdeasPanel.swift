@@ -115,7 +115,7 @@ private struct IdeaRow: View {
                     .lineLimit(2)
             }
             if let note = idea.note {
-                Text(note).font(Theme.Fonts.sans(10.5)).foregroundStyle(idea.analysis == .failed ? Theme.orange : Theme.textTertiary)
+                Text(note).font(Theme.Fonts.sans(10.5)).foregroundStyle(idea.analysis == .failed ? Theme.red : Theme.textTertiary)
             }
         }
         .padding(10)

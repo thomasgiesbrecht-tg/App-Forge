@@ -34,7 +34,7 @@ struct ChatScreen: View {
                     }
                     if let activity = chat?.activity, chat?.busy == true {
                         HStack(spacing: 8) {
-                            ProgressView().controlSize(.small).tint(Palette.orange)
+                            ProgressView().controlSize(.small).tint(Palette.active)
                             Text(activity).font(.footnote).foregroundStyle(Palette.secondary)
                         }
                         .id("activity")
@@ -146,10 +146,10 @@ private struct MessageBubble: View {
                     }
                 }
                 if let error = message.error {
-                    Text(error).font(.footnote).foregroundStyle(Palette.orange)
+                    Text(error).font(.footnote).foregroundStyle(Palette.red)
                 }
                 if message.completed, let cost = message.costUSD, cost > 0 {
-                    Text([message.agent, message.model, cost.usd].compactMap { $0 }.joined(separator: " · "))
+                    Text([message.agent, message.model, cost.euro].compactMap { $0 }.joined(separator: " · "))
                         .font(.caption2).foregroundStyle(Palette.tertiary)
                 }
             }
@@ -166,8 +166,8 @@ private struct QueuedBubble: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text(text)
                     .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Palette.orange.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4])))
-                Label("wartet auf den Mac", systemImage: "clock").font(.caption2).foregroundStyle(Palette.orange)
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Palette.tertiary, style: StrokeStyle(lineWidth: 1, dash: [4])))
+                Label("wartet auf den Mac", systemImage: "clock").font(.caption2).foregroundStyle(Palette.secondary)
             }
         }
     }

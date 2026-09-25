@@ -405,12 +405,13 @@ final class CompanionBridge {
             let info = ProjectInfoCache.info(for: path)
             return CompanionProject(
                 id: path, name: info.appName, folderName: info.folderName,
-                iconPNG: icon(for: path, image: info.icon), openIdeas: ideas.openCount(for: path), isMac: false
+                iconPNG: icon(for: path, image: info.icon), openIdeas: ideas.openCount(for: path),
+                spentUSD: store.ledger.total(for: path), isMac: false
             )
         }
         let mac = Self.macWorkspace
         list.append(CompanionProject(id: mac, name: "Mac", folderName: "Benutzerordner", iconPNG: nil,
-                                     openIdeas: ideas.openCount(for: mac), isMac: true))
+                                     openIdeas: ideas.openCount(for: mac), spentUSD: store.ledger.total(for: mac), isMac: true))
         return list
     }
 
@@ -812,7 +813,7 @@ final class CompanionBridge {
             CompanionMission(
                 id: mission.id, title: mission.title, projectID: mission.directory, projectName: projectName(mission.directory),
                 state: mission.state.rawValue, stateTitle: mission.state.title, isFinished: mission.state.isFinished,
-                agent: mission.agent, model: mission.model, activity: mission.activity,
+                agent: mission.agent, model: mission.activeModel, activity: mission.activity,
                 spentUSD: mission.spentUSD, budgetUSD: mission.budgetUSD, estimatedCostUSD: mission.estimatedCostUSD,
                 startedAt: mission.startedAt, endedAt: mission.endedAt, timeLimitMinutes: mission.timeLimitMinutes,
                 files: mission.insights?.files ?? [], additions: mission.insights?.additions ?? 0,
@@ -862,7 +863,7 @@ final class CompanionBridge {
         return CompanionSnapshot(
             macName: CompanionPairing.macName, engineRunning: store.engineState == .running, engineError: engineError,
             selectedProjectID: store.selectedProject, permissionMode: store.permissionMode.title,
-            spentToday: dispatcher.spentToday, missions: Array(missions), permissions: permissions,
+            spentToday: dispatcher.spentToday, eurPerUsd: Money.eurPerUsd, missions: Array(missions), permissions: permissions,
             zentrale: Array(zentrale), zentraleThinking: dispatcher.isThinking, zentraleError: dispatcher.error,
             events: Array(events), simulatorBooted: booted != nil, simulatorName: booted?.name
         )
@@ -873,6 +874,7 @@ final class CompanionBridge {
         case .neutral: .neutral
         case .good: .good
         case .attention: .attention
+        case .problem: .problem
         }
     }
 

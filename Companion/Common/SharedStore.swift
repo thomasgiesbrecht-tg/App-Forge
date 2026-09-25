@@ -12,6 +12,12 @@ enum SharedStore {
 
     static var defaults: UserDefaults { UserDefaults(suiteName: groupID) ?? .standard }
 
+    /// Euro je US-Dollar – kommt vom Mac (Referenzkurs der EZB).
+    static var eurPerUsd: Double {
+        get { defaults.object(forKey: "eurPerUsd") as? Double ?? 0.86 }
+        set { defaults.set(newValue, forKey: "eurPerUsd") }
+    }
+
     private static func url(_ name: String) -> URL { container.appending(path: name) }
 
     private static func read<T: Decodable>(_ name: String, as type: T.Type) -> T? {
@@ -127,4 +133,13 @@ enum DeepLink {
     }
 
     static let missions = URL(string: "\(CompanionProtocol.urlScheme)://auftraege")!
+}
+
+extension Double {
+    /// US-Dollar-Betrag als Euro, z. B. „0,08 €“ – kleine Beträge mit mehr Stellen.
+    var euro: String {
+        let value = self * SharedStore.eurPerUsd
+        let digits = value > 0 && value < 0.1 ? 3 : 2
+        return value.formatted(.currency(code: "EUR").precision(.fractionLength(digits)))
+    }
 }

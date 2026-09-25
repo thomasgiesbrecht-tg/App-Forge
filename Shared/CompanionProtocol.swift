@@ -85,6 +85,8 @@ struct CompanionProject: Codable, Identifiable, Hashable, Sendable {
     /// Kleines PNG (ca. 120 px) des App-Icons.
     var iconPNG: Data?
     var openIdeas: Int
+    /// Bisherige Kosten dieser App in US-Dollar (Chats, Aufträge, Medien).
+    var spentUSD: Double
     /// Der Bereich „Mac“: Aufgaben ohne bestimmte App (Mac steuern, Konnektoren, MCP …).
     var isMac: Bool
 }
@@ -155,7 +157,8 @@ struct CompanionZentraleMessage: Codable, Identifiable, Hashable, Sendable {
 }
 
 struct CompanionEvent: Codable, Identifiable, Hashable, Sendable {
-    enum Tone: String, Codable, Sendable { case neutral, good, attention }
+    /// attention = du musst etwas tun · problem = Fehler oder Abbruch
+    enum Tone: String, Codable, Sendable { case neutral, good, attention, problem }
     var id: UUID
     var date: Date
     var source: String
@@ -236,6 +239,8 @@ struct CompanionSnapshot: Codable, Hashable, Sendable {
     var selectedProjectID: String?
     var permissionMode: String
     var spentToday: Double
+    /// Euro je US-Dollar – Beträge werden in US-Dollar übertragen und in Euro angezeigt.
+    var eurPerUsd: Double
     var missions: [CompanionMission]
     var permissions: [CompanionPermission]
     var zentrale: [CompanionZentraleMessage]

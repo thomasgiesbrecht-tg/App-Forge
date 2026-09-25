@@ -49,7 +49,7 @@ struct MissionsView: View {
             .toolbar {
                 if let snapshot = model.snapshot {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Text("heute \(snapshot.spentToday.usd)").font(.caption).foregroundStyle(Palette.secondary)
+                        Text("heute \(snapshot.spentToday.euro)").font(.caption).foregroundStyle(Palette.secondary)
                     }
                 }
             }
@@ -61,6 +61,7 @@ struct MissionsView: View {
         case .neutral: Palette.tertiary
         case .good: Palette.green
         case .attention: Palette.orange
+        case .problem: Palette.red
         }
     }
 }
@@ -120,7 +121,7 @@ private struct MissionRow: View {
             HStack {
                 Text(mission.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Spacer()
-                Tag(text: mission.stateTitle, color: mission.isFinished ? (mission.state == "done" ? Palette.green : Palette.orange) : Palette.orange)
+                Tag(text: mission.stateTitle, color: mission.isFinished ? (mission.state == "done" ? Palette.green : Palette.red) : Palette.active)
             }
             Text("\(mission.projectName) · \(mission.agent) · \(mission.model)")
                 .font(.caption).foregroundStyle(Palette.tertiary).lineLimit(1)
@@ -128,13 +129,13 @@ private struct MissionRow: View {
                 Text(activity).font(.footnote).foregroundStyle(Palette.secondary).lineLimit(3)
             }
             if let progress = mission.progress, !mission.isFinished {
-                ProgressView(value: progress).tint(Palette.orange)
+                ProgressView(value: progress).tint(Palette.accent)
             }
             HStack(spacing: 6) {
-                Tag(text: mission.spentUSD.usd + (mission.budgetUSD.map { " / \($0.usd)" } ?? ""))
+                Tag(text: mission.spentUSD.euro + (mission.budgetUSD.map { " / \($0.euro)" } ?? ""))
                 if !mission.files.isEmpty { Tag(text: "\(mission.files.count) Dateien +\(mission.additions) −\(mission.deletions)") }
-                if let ok = mission.buildOK { Tag(text: ok ? "Build ✓" : "Build ✗\(mission.buildErrors.map { " \($0)" } ?? "")", color: ok ? Palette.green : Palette.orange) }
-                if let tests = mission.testsLabel { Tag(text: tests, color: mission.testsOK == false ? Palette.orange : Palette.green) }
+                if let ok = mission.buildOK { Tag(text: ok ? "Build ✓" : "Build ✗\(mission.buildErrors.map { " \($0)" } ?? "")", color: ok ? Palette.green : Palette.red) }
+                if let tests = mission.testsLabel { Tag(text: tests, color: mission.testsOK == false ? Palette.red : Palette.green) }
             }
         }
         .padding(.vertical, 4)

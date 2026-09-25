@@ -46,7 +46,7 @@ struct TaskLiveActivity: Widget {
                 Image(systemName: symbol(state.kind)).foregroundStyle(Palette.color(for: state.kind))
             }
             .widgetURL(context.attributes.link)
-            .keylineTint(Palette.orange)
+            .keylineTint(Palette.active)
         }
     }
 }
@@ -101,7 +101,7 @@ private struct Footer: View {
         HStack(spacing: 10) {
             if state.partsTotal > 1 {
                 ProgressView(value: Double(state.partsDone), total: Double(state.partsTotal))
-                    .tint(Palette.orange)
+                    .tint(Palette.accent)
                 Text("\(state.partsDone)/\(state.partsTotal)")
             }
             if let end = state.endedAt {
@@ -111,7 +111,7 @@ private struct Footer: View {
             }
             Spacer()
             if state.spentUSD > 0 {
-                Text(state.spentUSD, format: .currency(code: "USD").precision(.fractionLength(2)))
+                Text(state.spentUSD.euro)
             }
         }
         .font(.caption2)

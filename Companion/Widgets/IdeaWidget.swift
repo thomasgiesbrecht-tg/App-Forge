@@ -54,7 +54,7 @@ struct IdeaWidgetView: View {
     var body: some View {
         if entry.projects.isEmpty {
             VStack(spacing: 6) {
-                Image(systemName: "lightbulb").font(.title2).foregroundStyle(Palette.orange)
+                Image(systemName: "lightbulb").font(.title2).foregroundStyle(Palette.accent)
                 Text("Öffne AppForge einmal, damit deine Apps hier erscheinen.")
                     .font(.caption2).foregroundStyle(Palette.secondary).multilineTextAlignment(.center)
             }
@@ -77,7 +77,7 @@ struct IdeaWidgetView: View {
             HStack {
                 ProjectIconView(project, size: 46)
                 Spacer()
-                Image(systemName: "lightbulb.fill").foregroundStyle(Palette.orange)
+                Image(systemName: "lightbulb.fill").foregroundStyle(Palette.accent)
             }
             Spacer(minLength: 0)
             Text(project.name).font(.headline).foregroundStyle(Palette.text).lineLimit(1)
@@ -94,7 +94,7 @@ struct IdeaWidgetView: View {
             if withButtons {
                 Label("Idee notieren", systemImage: "lightbulb.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Palette.orange)
+                    .foregroundStyle(Palette.accent)
             }
             LazyVGrid(columns: layout, alignment: .leading, spacing: withButtons ? 12 : 8) {
                 ForEach(items) { project in
@@ -132,7 +132,7 @@ struct IdeaWidgetView: View {
                     .font(.caption)
                     .foregroundStyle(Palette.black)
                     .frame(width: 28, height: 28)
-                    .background(Circle().fill(Palette.orange))
+                    .background(Circle().fill(Palette.accent))
             }
         }
     }

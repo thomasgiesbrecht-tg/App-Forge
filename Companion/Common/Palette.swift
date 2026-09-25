@@ -1,7 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// „Aura dunkel“ wie in AppForge am Mac: Schwarz, Graustufen, Orange (arbeitet · deine Aktion), Grün (fertig).
+/// „Aura dunkel“ wie in AppForge am Mac: Schwarz und Graustufen. Arbeit ist weiß, Grün heißt fertig,
+/// Rot heißt Fehler oder Problem. Orange nur, wenn du selbst etwas tun musst.
 enum Palette {
     static let black = Color(red: 0, green: 0, blue: 0)
     static let raise = Color(red: 11 / 255, green: 11 / 255, blue: 11 / 255)
@@ -9,16 +10,20 @@ enum Palette {
     static let line = Color(red: 30 / 255, green: 30 / 255, blue: 30 / 255)
     static let orange = Color(red: 1, green: 138 / 255, blue: 51 / 255)
     static let green = Color(red: 76 / 255, green: 217 / 255, blue: 123 / 255)
+    static let red = Color(red: 242 / 255, green: 85 / 255, blue: 90 / 255)
+    /// Arbeitet gerade – bewusst neutral.
+    static let active = Color(red: 230 / 255, green: 230 / 255, blue: 225 / 255)
+    static let accent = green
     static let text = Color(red: 242 / 255, green: 242 / 255, blue: 240 / 255)
     static let secondary = Color(red: 140 / 255, green: 140 / 255, blue: 140 / 255)
     static let tertiary = Color(red: 85 / 255, green: 85 / 255, blue: 85 / 255)
 
     static func color(for kind: LiveTaskState.Kind) -> Color {
         switch kind {
-        case .running: orange
+        case .running: active
         case .needsYou: orange
         case .done: green
-        case .failed: orange
+        case .failed: red
         }
     }
 }

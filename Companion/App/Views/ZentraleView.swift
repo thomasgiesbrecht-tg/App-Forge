@@ -29,20 +29,20 @@ struct ZentraleView: View {
                                     Spacer(minLength: 40)
                                     VStack(alignment: .trailing, spacing: 4) {
                                         Text(text).padding(12)
-                                            .background(RoundedRectangle(cornerRadius: 18).strokeBorder(Palette.orange.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4])))
-                                        Label("wartet auf den Mac", systemImage: "clock").font(.caption2).foregroundStyle(Palette.orange)
+                                            .background(RoundedRectangle(cornerRadius: 18).strokeBorder(Palette.tertiary, style: StrokeStyle(lineWidth: 1, dash: [4])))
+                                        Label("wartet auf den Mac", systemImage: "clock").font(.caption2).foregroundStyle(Palette.secondary)
                                     }
                                 }
                             }
                         }
                         if model.snapshot?.zentraleThinking == true && model.isConnected {
                             HStack(spacing: 8) {
-                                ProgressView().controlSize(.small).tint(Palette.orange)
+                                ProgressView().controlSize(.small).tint(Palette.active)
                                 Text("Die Zentrale denkt nach …").font(.footnote).foregroundStyle(Palette.secondary)
                             }
                         }
                         if let error = model.snapshot?.zentraleError, model.isConnected {
-                            Text(error).font(.footnote).foregroundStyle(Palette.orange)
+                            Text(error).font(.footnote).foregroundStyle(Palette.red)
                         }
                         Color.clear.frame(height: 1).id("bottom")
                     }
@@ -87,7 +87,7 @@ struct ZentraleView: View {
                 Image(systemName: "chevron.up.chevron.down").font(.caption2)
                 Spacer()
                 if let spent = model.snapshot?.spentToday, spent > 0 {
-                    Text("heute \(spent.usd)").font(.caption2).foregroundStyle(Palette.tertiary)
+                    Text("heute \(spent.euro)").font(.caption2).foregroundStyle(Palette.tertiary)
                 }
             }
             .foregroundStyle(Palette.secondary)
@@ -124,11 +124,11 @@ private struct ZentraleMessageView: View {
                                     Text("\(task.agent) · \(task.model)").font(.caption).foregroundStyle(Palette.tertiary)
                                 }
                                 Spacer()
-                                if let cost = task.estimatedCostUSD { Text("≈ \(cost.usd)").font(.caption).foregroundStyle(Palette.secondary) }
+                                if let cost = task.estimatedCostUSD { Text("≈ \(cost.euro)").font(.caption).foregroundStyle(Palette.secondary) }
                             }
                         }
                         HStack {
-                            if let cost = proposal.estimatedCostUSD { Tag(text: "≈ \(cost.usd)") }
+                            if let cost = proposal.estimatedCostUSD { Tag(text: "≈ \(cost.euro)") }
                             if let minutes = proposal.estimatedMinutes { Tag(text: "≈ \(Int(minutes)) min") }
                             Spacer()
                             if message.launched {

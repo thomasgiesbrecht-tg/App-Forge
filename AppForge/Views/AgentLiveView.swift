@@ -28,6 +28,7 @@ struct AgentLiveView: View {
                     if let point = layout.positions[node.id] {
                         NodeView(
                             node: node,
+                            focused: store.dispatcher.focus?.nodeID == node.id,
                             onOpen: { open(node) },
                             onReply: { request, reply in
                                 guard !request.id.hasPrefix("demo") else { return }
@@ -52,7 +53,7 @@ struct AgentLiveView: View {
             HStack(spacing: 10) {
                 if let summary = graph.summary { SummaryBar(summary: summary) }
                 if demoActive {
-                    Button("Beispiel schließen") { withAnimation(Theme.Motion.spring) { showDemo = false } }
+                    Button("Beispiel schließen") { withAnimation(Theme.Motion.spring) { showDemo = false; store.dispatcher.focus = nil } }
                         .buttonStyle(PillButtonStyle())
                 }
             }
@@ -64,11 +65,20 @@ struct AgentLiveView: View {
         .background(Theme.black)
     }
 
+    /// Klick auf einen Agenten: links erscheinen seine Gedanken. Klick auf die Zentrale oder nochmal auf
+    /// denselben Agenten: zurück zum Gespräch mit der Zentrale.
     private func open(_ node: LiveNode) {
-        guard let missionID = node.missionID,
-              let mission = store.dispatcher.missions.first(where: { $0.id == missionID }),
-              !mission.sessionID.isEmpty else { return }
-        Task { await store.open(mission) }
+        let dispatcher = store.dispatcher
+        guard node.kind != .dispatcher, dispatcher.focus?.nodeID != node.id else {
+            withAnimation(Theme.Motion.spring) { dispatcher.focus = nil }
+            return
+        }
+        let mission = node.missionID.flatMap { id in dispatcher.missions.first { $0.id == id } }
+        let focus = ThoughtFocus(
+            nodeID: node.id, sessionID: node.sessionID, directory: mission?.directory, missionID: node.missionID,
+            title: node.title, subtitle: node.subtitle, symbol: node.symbol
+        )
+        withAnimation(Theme.Motion.spring) { dispatcher.focus = focus }
     }
 
     @ViewBuilder private var projectChip: some View {
@@ -84,7 +94,8 @@ struct AgentLiveView: View {
                 AppIconView(info: info, size: 22)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(info.appName).font(Theme.Fonts.sans(12.5, .medium)).foregroundStyle(Theme.textPrimary)
-                    Text("Agenten arbeiten an dieser App").font(Theme.Fonts.sans(10.5)).foregroundStyle(Theme.textTertiary)
+                    Text("bisher \(Money.format(store.ledger.total(for: path))) für diese App")
+                        .font(Theme.Fonts.sans(10.5)).foregroundStyle(Theme.textTertiary)
                 }
             }
         }
@@ -122,6 +133,8 @@ struct LiveNode: Identifiable {
     var parentID: String?
     var dependsOn: [String] = []
     var missionID: UUID?
+    /// Sitzung, deren Gedanken beim Anklicken links erscheinen.
+    var sessionID: String?
     var detail: String = ""
 
     // Zusatzinfos für Agenten
@@ -213,7 +226,7 @@ struct LiveGraph {
         for mission in shown {
             guard let transcript = store.messages[mission.sessionID] else { continue }
             let childIDs = transcript.flatMap(\.parts).compactMap(\.childSessionID)
-            let limit = contextLimit(mission.model, store: store)
+            let limit = contextLimit(mission.activeModel, store: store)
             let result = InsightExtractor.extract(main: transcript, children: childIDs.compactMap { store.messages[$0] }, contextLimit: limit)
             liveInsights[mission.id] = result.insights
             previews[mission.id] = result.preview
@@ -235,26 +248,28 @@ struct LiveGraph {
             let thought: String = switch mission.state {
             case .running, .wrappingUp: transcript.flatMap(ActivityDigest.activity(of:)) ?? mission.activity ?? "arbeitet"
             case .waiting: mission.activity ?? "wartet"
-            case .done: "fertig · " + String(format: "$%.3f", mission.spentUSD) + " · " + duration(mission.elapsed)
+            case .done: "fertig · " + Money.format(mission.spentUSD) + " · " + duration(mission.elapsed)
             default: mission.state.title
             }
             let agentName = store.agents.first { $0.name == mission.agent }?.displayName ?? mission.agent
-            let modelName = mission.model.split(separator: "/").last.map(String.init) ?? mission.model
+            let modelName = mission.activeModel.split(separator: "/").last.map(String.init) ?? mission.activeModel
             let own = insights(mission)
             let conflicts = (own?.files ?? []).compactMap { file -> (file: String, others: [String])? in
                 let others = (owners[file] ?? []).filter { $0 != mission.title }
                 return others.isEmpty ? nil : (file, others)
             }
-            var detail = "\(mission.model)\nKosten \(String(format: "$%.3f", mission.spentUSD))"
-            if let budget = mission.budgetUSD { detail += String(format: " von $%.2f", budget) }
+            var detail = (mission.escalatedModel.map { "\(mission.model) → \($0)" } ?? mission.model) + "\nKosten \(Money.format(mission.spentUSD))"
+            if let budget = mission.budgetUSD { detail += " von " + Money.format(budget) }
             detail += "\nZeit \(duration(mission.elapsed))"
             if let fraction = own?.contextFraction { detail += "\nKontext \(Int(fraction * 100)) %" }
+            if let rate = mission.cacheRate { detail += "\nZwischenspeicher \(Int(rate * 100)) %" }
             if let files = own?.files, !files.isEmpty { detail += "\n\n" + files.prefix(8).joined(separator: "\n") }
 
             nodes.append(LiveNode(
                 id: mission.id.uuidString, kind: .agent, title: mission.title, subtitle: "\(agentName) · \(modelName)",
                 thought: thought, status: status, symbol: symbol(forAgent: mission.agent), parentID: "zentrale",
-                dependsOn: (mission.dependsOn ?? []).map(\.uuidString), missionID: mission.id, detail: detail,
+                dependsOn: (mission.dependsOn ?? []).map(\.uuidString), missionID: mission.id,
+                sessionID: mission.sessionID.isEmpty ? nil : mission.sessionID, detail: detail,
                 insights: own, permissions: store.permissions(forRoot: mission.sessionID), conflicts: conflicts,
                 preview: previews[mission.id], spent: mission.spentUSD, estimate: mission.estimatedCostUSD
             ))
@@ -270,7 +285,8 @@ struct LiveGraph {
                 nodes.append(LiveNode(
                     id: "\(mission.id.uuidString)-\(sub.id)", kind: .subagent, title: "@\(sub.name)", subtitle: sub.task,
                     thought: subStatus == .done ? "fertig" : (sub.activity ?? sub.task), status: subStatus,
-                    symbol: symbol(forAgent: sub.name), parentID: mission.id.uuidString, missionID: mission.id
+                    symbol: symbol(forAgent: sub.name), parentID: mission.id.uuidString, missionID: mission.id,
+                    sessionID: sub.childSessionID
                 ))
             }
         }
@@ -333,14 +349,14 @@ struct LiveGraph {
                      thought: "überwacht 3 Agenten", status: .working, symbol: "dot.radiowaves.left.and.right"),
             LiveNode(id: "design", kind: .agent, title: "Design", subtitle: "UI-Designer · qwen3.8-max",
                      thought: "bearbeitet SettingsView.swift", status: .working, symbol: "paintbrush.pointed", parentID: "zentrale",
-                     detail: "alibaba/qwen3.8-max\nKosten $0.041 von $0.10", insights: designInsights, permissions: [request],
+                     detail: "alibaba/qwen3.8-max\nKosten 0,035 € von 0,09 €", insights: designInsights, permissions: [request],
                      conflicts: [("Ansicht/SettingsView.swift", ["Code"])], spent: 0.041, estimate: 0.08),
             LiveNode(id: "code", kind: .agent, title: "Code", subtitle: "Koordinator · deepseek-v4.1",
                      thought: "beauftragt @swift-entwickler", status: .working, symbol: "person.3", parentID: "zentrale",
-                     detail: "deepseek/deepseek-v4.1\nKosten $0.037 von $0.12", insights: codeInsights,
+                     detail: "deepseek/deepseek-v4.1\nKosten 0,032 € von 0,10 €", insights: codeInsights,
                      conflicts: [("Ansicht/SettingsView.swift", ["Design"])], spent: 0.037, estimate: 0.1),
             LiveNode(id: "texte", kind: .agent, title: "Texte", subtitle: "Build · deepseek-flash",
-                     thought: "fertig · $0.006 · 0:48 min", status: .done, symbol: "text.quote", parentID: "zentrale",
+                     thought: "fertig · 0,005 € · 0:48 min", status: .done, symbol: "text.quote", parentID: "zentrale",
                      insights: textInsights, spent: 0.006, estimate: 0.01),
             LiveNode(id: "tests", kind: .agent, title: "Tests & Build", subtitle: "Tester · deepseek-flash",
                      thought: "wartet auf Design, Code", status: .waiting, symbol: "checkmark.seal", parentID: "zentrale",
@@ -355,9 +371,9 @@ struct LiveGraph {
     static var demoEvents: [MissionEvent] {
         [
             MissionEvent(source: "Design", text: "braucht deine Freigabe · bash", tone: .attention),
-            MissionEvent(source: "Design & Code", text: "ändern beide Ansicht/SettingsView.swift", tone: .attention),
-            MissionEvent(source: "Code", text: "Build fehlgeschlagen · 2 Fehler", tone: .attention),
-            MissionEvent(source: "Texte", text: "fertig · $0.006", tone: .good),
+            MissionEvent(source: "Design & Code", text: "ändern beide Ansicht/SettingsView.swift", tone: .problem),
+            MissionEvent(source: "Code", text: "Build fehlgeschlagen · 2 Fehler", tone: .problem),
+            MissionEvent(source: "Texte", text: "fertig · 0,005 €", tone: .good),
         ]
     }
 }
@@ -436,8 +452,8 @@ enum LiveEdges {
                 for k in 0..<3 {
                     let t = (time * 0.42 + Double(k) / 3).truncatingRemainder(dividingBy: 1)
                     let p = point(on: from, to, t: t)
-                    canvas.fill(Path(ellipseIn: CGRect(x: p.x - 6, y: p.y - 6, width: 12, height: 12)), with: .color(Theme.orange.opacity(0.14)))
-                    canvas.fill(Path(ellipseIn: CGRect(x: p.x - 2.5, y: p.y - 2.5, width: 5, height: 5)), with: .color(Theme.orange))
+                    canvas.fill(Path(ellipseIn: CGRect(x: p.x - 6, y: p.y - 6, width: 12, height: 12)), with: .color(Theme.active.opacity(0.12)))
+                    canvas.fill(Path(ellipseIn: CGRect(x: p.x - 2.5, y: p.y - 2.5, width: 5, height: 5)), with: .color(Theme.active))
                 }
             } else if child.status == .done {
                 canvas.fill(Path(ellipseIn: CGRect(x: to.x - 3, y: to.y - 3, width: 6, height: 6)), with: .color(Theme.green.opacity(0.8)))
@@ -484,7 +500,7 @@ enum LiveEdges {
 
     private static func color(_ status: LiveNode.Status) -> Color {
         switch status {
-        case .working: Theme.orange
+        case .working: Theme.active
         case .done: Theme.green
         default: Theme.textTertiary
         }
@@ -511,6 +527,7 @@ enum LiveEdges {
 
 private struct NodeView: View {
     let node: LiveNode
+    let focused: Bool
     let onOpen: () -> Void
     let onReply: (PermissionRequest, PermissionReply) -> Void
     @State private var hovering = false
@@ -529,7 +546,7 @@ private struct NodeView: View {
                 ForEach(node.conflicts.prefix(1), id: \.file) { conflict in
                     Label("\((conflict.file as NSString).lastPathComponent) auch bei \(conflict.others.joined(separator: ", "))", systemImage: "exclamationmark.triangle")
                         .font(Theme.Fonts.sans(10.5))
-                        .foregroundStyle(Theme.orange)
+                        .foregroundStyle(Theme.red)
                         .lineLimit(1)
                         .help("Zwei Agenten ändern dieselbe Datei – das Ergebnis des einen kann das des anderen überschreiben.")
                 }
@@ -543,7 +560,7 @@ private struct NodeView: View {
         .offset(y: node.labelHeight / 2)
         .onHover { hovering = $0 }
         .onTapGesture(perform: onOpen)
-        .help(node.detail.isEmpty ? node.subtitle : node.detail)
+        .help((node.detail.isEmpty ? node.subtitle : node.detail) + (node.kind == .dispatcher ? "" : "\n\nKlicken: Gedanken links anzeigen"))
         .animation(Theme.Motion.snappy, value: hovering)
         .animation(Theme.Motion.spring, value: node.status)
     }
@@ -557,7 +574,7 @@ private struct NodeView: View {
                 Circle().strokeBorder(border, lineWidth: 1.2)
                 Image(systemName: node.symbol)
                     .font(.system(size: 18, weight: .light))
-                    .foregroundStyle(node.status == .working ? Theme.orange : Theme.textSecondary)
+                    .foregroundStyle(node.status == .working ? Theme.active : Theme.textSecondary)
             }
             .frame(width: LiveLayout.dispatcherDiameter, height: LiveLayout.dispatcherDiameter)
 
@@ -569,13 +586,13 @@ private struct NodeView: View {
                     if let fraction = node.insights?.contextFraction {
                         Circle()
                             .trim(from: 0, to: fraction)
-                            .stroke(fraction > 0.8 ? Theme.orange : Theme.textTertiary, style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                            .stroke(fraction > 0.8 ? Theme.red : Theme.textTertiary, style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                             .padding(1)
                     }
                     Image(systemName: node.symbol)
                         .font(.system(size: 12))
-                        .foregroundStyle(node.status == .working ? Theme.orange : Theme.textSecondary)
+                        .foregroundStyle(node.status == .working ? Theme.active : Theme.textSecondary)
                 }
                 .frame(width: 28, height: 28)
                 .help(node.insights?.contextFraction.map { "Kontext \(Int($0 * 100)) % belegt" } ?? "")
@@ -602,7 +619,7 @@ private struct NodeView: View {
                     .strokeBorder(border, style: StrokeStyle(lineWidth: 1.2, dash: node.status == .waiting ? [4, 4] : []))
             )
             .overlay(alignment: .topTrailing) { thumbnail }
-            .shadow(color: node.status == .working ? Theme.orange.opacity(0.25) : .clear, radius: 12)
+            .shadow(color: node.status == .working ? Theme.active.opacity(0.12) : .clear, radius: 12)
             .scaleEffect(hovering ? 1.03 : 1)
 
         case .subagent:
@@ -611,10 +628,10 @@ private struct NodeView: View {
                 Circle().strokeBorder(border, style: StrokeStyle(lineWidth: 1.2, dash: node.status == .waiting ? [3, 4] : []))
                 Image(systemName: node.symbol)
                     .font(.system(size: 13))
-                    .foregroundStyle(node.status == .working ? Theme.orange : Theme.textSecondary)
+                    .foregroundStyle(node.status == .working ? Theme.active : Theme.textSecondary)
             }
             .frame(width: LiveLayout.subagentDiameter, height: LiveLayout.subagentDiameter)
-            .shadow(color: node.status == .working ? Theme.orange.opacity(0.22) : .clear, radius: 10)
+            .shadow(color: node.status == .working ? Theme.active.opacity(0.1) : .clear, radius: 10)
             .scaleEffect(hovering ? 1.06 : 1)
         }
     }
@@ -624,7 +641,7 @@ private struct NodeView: View {
         if let progress = node.insights?.progress {
             GeometryReader { geo in
                 Capsule()
-                    .fill(node.status == .done ? Theme.green : Theme.orange)
+                    .fill(node.status == .done ? Theme.green : Theme.active.opacity(0.7))
                     .frame(width: max(4, (geo.size.width - 28) * progress), height: 2)
                     .offset(x: 14, y: geo.size.height - 5)
                     .animation(Theme.Motion.spring, value: progress)
@@ -654,17 +671,18 @@ private struct NodeView: View {
         case .working: ForgeSpinner(size: 12)
         case .done: DrawnCheckmark(size: 12)
         case .waiting: Image(systemName: "hourglass").font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
-        case .failed: Image(systemName: "exclamationmark").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.orange)
+        case .failed: Image(systemName: "exclamationmark").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.red)
         case .idle: EmptyView()
         }
     }
 
     private var border: Color {
         if !node.permissions.isEmpty { return Theme.orange }
+        if focused { return Theme.textPrimary }
         switch node.status {
-        case .working: return Theme.orange.opacity(0.7)
+        case .working: return Theme.active.opacity(0.45)
         case .done: return Theme.green.opacity(0.55)
-        case .failed: return Theme.orange.opacity(0.35)
+        case .failed: return Theme.red.opacity(0.5)
         case .waiting, .idle: return Theme.line
         }
     }
@@ -687,13 +705,13 @@ private struct MetaLine: View {
             }
             if let build = node.insights?.build {
                 Label(build.ok ? "Build" : "Build \(build.errors.map { "· \($0)" } ?? "")", systemImage: build.ok ? "checkmark" : "xmark")
-                    .foregroundStyle(build.ok ? Theme.green.opacity(0.85) : Theme.orange)
+                    .foregroundStyle(build.ok ? Theme.green.opacity(0.85) : Theme.red)
             }
             if let tests = node.insights?.tests, let label = node.insights?.testsLabel {
-                Text(label).foregroundStyle(tests.ok ? Theme.green.opacity(0.85) : Theme.orange)
+                Text(label).foregroundStyle(tests.ok ? Theme.green.opacity(0.85) : Theme.red)
             }
             if node.overBudget {
-                Text("teurer als geschätzt").foregroundStyle(Theme.orange)
+                Text("teurer als geschätzt").foregroundStyle(Theme.red)
             }
         }
         .font(Theme.Fonts.sans(10.5))
@@ -748,7 +766,7 @@ private struct Thought: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             Circle()
-                .fill(status == .working ? Theme.orange : (status == .done ? Theme.green : Theme.textTertiary))
+                .fill(status == .working ? Theme.active : (status == .done ? Theme.green : Theme.textTertiary))
                 .frame(width: 4, height: 4)
                 .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
             Text(text)
@@ -777,17 +795,17 @@ private struct SummaryBar: View {
                 }
                 if let build = summary.build {
                     Label("Build \(build.ok ? "ok" : "rot") · \(ago(build.time))", systemImage: build.ok ? "checkmark" : "xmark")
-                        .foregroundStyle(build.ok ? Theme.green.opacity(0.85) : Theme.orange)
+                        .foregroundStyle(build.ok ? Theme.green.opacity(0.85) : Theme.red)
                 }
                 if let tests = summary.tests, let label = summary.testsLabel {
-                    Text(label).foregroundStyle(tests.ok ? Theme.green.opacity(0.85) : Theme.orange)
+                    Text(label).foregroundStyle(tests.ok ? Theme.green.opacity(0.85) : Theme.red)
                 }
                 HStack(spacing: 4) {
-                    Text(String(format: "$%.3f", summary.spent)).foregroundStyle(Theme.textPrimary)
-                    Text("→ ≈ " + String(format: "$%.2f", summary.projected))
+                    Text(Money.format(summary.spent)).foregroundStyle(Theme.textPrimary)
+                    Text("→ ≈ " + Money.format(summary.projected))
                     if let budget = summary.budget {
-                        Text(String(format: "von $%.2f", budget))
-                            .foregroundStyle(summary.projected > budget ? Theme.orange : Theme.textTertiary)
+                        Text("von " + Money.format(budget))
+                            .foregroundStyle(summary.projected > budget ? Theme.red : Theme.textTertiary)
                     }
                 }
                 .help("Bisher ausgegeben → voraussichtlich am Ende (aus Fortschritt und Schätzungen)")
@@ -827,7 +845,7 @@ private struct EventTicker: View {
                         .foregroundStyle(Theme.textSecondary)
                     Text(event.text)
                         .font(Theme.Fonts.sans(11.5))
-                        .foregroundStyle(event.tone == .attention ? Theme.orange : Theme.textTertiary)
+                        .foregroundStyle(event.tone == .attention ? Theme.orange : event.tone == .problem ? Theme.red : Theme.textTertiary)
                         .lineLimit(1)
                     Spacer(minLength: 0)
                 }
@@ -847,6 +865,7 @@ private struct EventTicker: View {
         case .neutral: Theme.textTertiary
         case .good: Theme.green
         case .attention: Theme.orange
+        case .problem: Theme.red
         }
     }
 }
@@ -860,7 +879,7 @@ private struct PulseRings: View {
         ZStack {
             ForEach(0..<2, id: \.self) { index in
                 Circle()
-                    .strokeBorder(Theme.orange.opacity(0.35), lineWidth: 1)
+                    .strokeBorder(Theme.active.opacity(0.22), lineWidth: 1)
                     .scaleEffect(expand ? 1.9 : 1)
                     .opacity(expand ? 0 : 0.8)
                     .animation(.easeOut(duration: 2.4).repeatForever(autoreverses: false).delay(Double(index) * 1.2), value: expand)

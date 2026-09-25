@@ -19,6 +19,10 @@ struct Proposal: Hashable, Sendable {
         var estimatedCostUSD: Double?
         /// Indizes der Teilaufträge, die vorher fertig sein müssen.
         var dependsOn: [Int] = []
+        /// Wie gründlich das Modell nachdenken soll.
+        var effort: Effort?
+        /// Stärkeres Modell, das übernimmt, falls Build oder Tests mit dem günstigen scheitern.
+        var escalateTo: String?
     }
 
     var reply: String
@@ -32,6 +36,8 @@ struct Proposal: Hashable, Sendable {
     var timeLimitMinutes: Double?
     var alternatives: [Alternative] = []
     var tasks: [TaskPlan] = []
+    /// `false`: darf auf den günstigen Nachttarif warten.
+    var urgent = true
 
     /// Liest das JSON-Objekt aus dem Antworttext (auch in ```json-Blöcken). `nil`, wenn keins gefunden wurde.
     static func parse(_ text: String) -> Proposal? {
@@ -51,6 +57,15 @@ struct Proposal: Hashable, Sendable {
             }
         }
 
+        func effort(_ text: String?) -> Effort? {
+            switch text?.lowercased() {
+            case "low", "minimal", "wenig", "niedrig": .low
+            case "medium", "mittel": .medium
+            case "high", "viel", "hoch", "max": .high
+            default: nil
+            }
+        }
+
         var proposal = Proposal(
             reply: string(json["reply"]) ?? "",
             dispatch: json["dispatch"] == .bool(true) || string(json["dispatch"]) == "true",
@@ -58,6 +73,8 @@ struct Proposal: Hashable, Sendable {
             estimatedCostUSD: number(json["estimatedCostUSD"]), estimatedMinutes: number(json["estimatedMinutes"]),
             budgetUSD: number(json["budgetUSD"]), timeLimitMinutes: number(json["timeLimitMinutes"])
         )
+
+        if json["urgent"] == .bool(false) || string(json["urgent"]) == "false" { proposal.urgent = false }
 
         if case .array(let items) = json["alternatives"] {
             proposal.alternatives = items.compactMap { item in
@@ -78,7 +95,8 @@ struct Proposal: Hashable, Sendable {
                 return TaskPlan(
                     id: index, title: string(item["title"]) ?? "Teil \(index + 1)",
                     agent: string(item["agent"]) ?? "build", model: model, prompt: prompt,
-                    estimatedCostUSD: number(item["estimatedCostUSD"]), dependsOn: dependsOn
+                    estimatedCostUSD: number(item["estimatedCostUSD"]), dependsOn: dependsOn,
+                    effort: effort(string(item["effort"])), escalateTo: string(item["escalateTo"])
                 )
             }
             // Abhängigkeiten auf vorhandene Teilaufträge beschränken

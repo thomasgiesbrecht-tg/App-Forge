@@ -31,9 +31,9 @@ struct IdeaCaptureView: View {
                     .focused($focused)
                     .padding(14)
                     .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.lift))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(speech.isRecording ? Palette.orange : Palette.line))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(speech.isRecording ? Palette.accent : Palette.line))
 
-                if let error = speech.error { Text(error).font(.footnote).foregroundStyle(Palette.orange) }
+                if let error = speech.error { Text(error).font(.footnote).foregroundStyle(Palette.red) }
 
                 HStack(spacing: 16) {
                     Button {
@@ -47,13 +47,13 @@ struct IdeaCaptureView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(speech.isRecording ? Palette.orange : Palette.lift)
+                                .fill(speech.isRecording ? Palette.accent : Palette.lift)
                                 .frame(width: 72, height: 72)
                                 .scaleEffect(1 + CGFloat(speech.level) * 0.25)
                                 .animation(.easeOut(duration: 0.1), value: speech.level)
                             Image(systemName: speech.isRecording ? "stop.fill" : "mic.fill")
                                 .font(.title)
-                                .foregroundStyle(speech.isRecording ? Palette.black : Palette.orange)
+                                .foregroundStyle(speech.isRecording ? Palette.black : Palette.accent)
                         }
                     }
                     .accessibilityLabel(speech.isRecording ? "Aufnahme stoppen" : "Idee einsprechen")

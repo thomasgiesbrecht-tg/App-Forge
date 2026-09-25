@@ -11,7 +11,7 @@ struct AppForgeCompanionApp: App {
             RootView()
                 .environment(model)
                 .preferredColorScheme(.dark)
-                .tint(Palette.orange)
+                .tint(Palette.accent)
                 .onOpenURL { model.handle($0) }
                 .onAppear { AppDelegate.model = model }
                 .onChange(of: scenePhase, initial: true) { _, phase in

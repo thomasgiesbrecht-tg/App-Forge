@@ -46,7 +46,7 @@ struct OpenCodeClient: Sendable {
     /// Sendet einen Prompt, ohne auf die Antwort zu warten – der Fortschritt kommt über den Event-Stream.
     func prompt(
         sessionID: String, directory: String, text: String, attachments: [Attachment] = [],
-        mentions: [String] = [], model: ModelSelection?, agent: String?, system: String?, noReply: Bool = false
+        mentions: [String] = [], model: ModelSelection?, agent: String?, system: String?, variant: String? = nil, noReply: Bool = false
     ) async throws {
         struct PartInput: Encodable {
             var type: String
@@ -60,13 +60,14 @@ struct OpenCodeClient: Sendable {
             var model: ModelSelection?
             var agent: String?
             var system: String?
+            var variant: String?
             var noReply: Bool?
             var parts: [PartInput]
         }
         var parts = [PartInput(type: "text", text: text)]
         parts += attachments.map { PartInput(type: "file", mime: $0.mime, filename: $0.filename, url: $0.url) }
         parts += mentions.map { PartInput(type: "agent", name: $0) }
-        let body = Body(model: model, agent: agent, system: system, noReply: noReply ? true : nil, parts: parts)
+        let body = Body(model: model, agent: agent, system: system, variant: variant, noReply: noReply ? true : nil, parts: parts)
         try await sendNoContent("POST", "/session/\(sessionID)/prompt_async", directory: directory, body: body)
     }
 

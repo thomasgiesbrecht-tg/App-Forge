@@ -62,6 +62,9 @@ struct ProjectView: View {
                 Text(project?.name ?? "").font(.title3.weight(.semibold))
                 Text(project?.isMac == true ? "Aufgaben auf dem Mac, Konnektoren, MCP" : (project?.folderName ?? ""))
                     .font(.caption).foregroundStyle(Palette.secondary)
+                if let spent = project?.spentUSD, spent > 0 {
+                    Text("bisher \(spent.euro)").font(.caption).foregroundStyle(Palette.tertiary)
+                }
             }
             Spacer()
         }
@@ -72,7 +75,7 @@ struct ProjectView: View {
 
     @ViewBuilder private var chats: some View {
         NavigationLink(value: AppsView.Route.chat(projectID: projectID, sessionID: nil)) {
-            Label("Neuer Chat", systemImage: "square.and.pencil").foregroundStyle(Palette.orange)
+            Label("Neuer Chat", systemImage: "square.and.pencil").foregroundStyle(Palette.accent)
         }
         .listRowBackground(Palette.raise)
 
@@ -80,7 +83,7 @@ struct ProjectView: View {
         ForEach(queued) { item in
             if case .chat(_, _, _, let text, _) = item {
                 HStack {
-                    Image(systemName: "clock").foregroundStyle(Palette.orange)
+                    Image(systemName: "clock").foregroundStyle(Palette.secondary)
                     VStack(alignment: .leading) {
                         Text(text).lineLimit(2)
                         Text("wartet auf den Mac").font(.caption).foregroundStyle(Palette.secondary)
@@ -95,7 +98,7 @@ struct ProjectView: View {
             NavigationLink(value: AppsView.Route.chat(projectID: projectID, sessionID: session.id)) {
                 HStack(spacing: 10) {
                     if session.busy {
-                        ProgressView().controlSize(.small).tint(Palette.orange)
+                        ProgressView().controlSize(.small).tint(Palette.active)
                     } else {
                         Image(systemName: "bubble.left").foregroundStyle(Palette.tertiary)
                     }
@@ -104,7 +107,7 @@ struct ProjectView: View {
                         Text(session.updatedAt, style: .relative).font(.caption).foregroundStyle(Palette.secondary)
                     }
                     Spacer()
-                    if session.notify { Image(systemName: "bell.fill").font(.caption).foregroundStyle(Palette.orange) }
+                    if session.notify { Image(systemName: "bell.fill").font(.caption).foregroundStyle(Palette.secondary) }
                 }
             }
             .listRowBackground(Palette.raise)
@@ -194,17 +197,17 @@ struct IdeaRow: View {
             }
             HStack(spacing: 6) {
                 if pending {
-                    Tag(text: "wartet auf Mac", color: Palette.orange)
+                    Tag(text: "wartet auf Mac")
                 } else {
                     switch idea.analysis {
                     case .pending, .running: Tag(text: "wird eingeordnet …")
-                    case .failed: Tag(text: "Einordnung fehlgeschlagen", color: Palette.orange)
+                    case .failed: Tag(text: "Einordnung fehlgeschlagen", color: Palette.red)
                     default: EmptyView()
                     }
                 }
                 if let category = idea.category { Tag(text: category) }
                 if let effort = idea.effort { Tag(text: "Aufwand \(effort)") }
-                if idea.duplicateOf != nil { Tag(text: "ähnliche Idee vorhanden", color: Palette.orange) }
+                if idea.duplicateOf != nil { Tag(text: "ähnliche Idee vorhanden") }
             }
             if let note = idea.note, idea.analysis != .failed {
                 Text(note).font(.caption).foregroundStyle(Palette.tertiary)
