@@ -79,6 +79,11 @@ struct ProjectView: View {
         }
         .listRowBackground(Palette.raise)
 
+        NavigationLink(value: AppsView.Route.chat(projectID: projectID, sessionID: nil, agent: "motion-designer")) {
+            Label("Motion Designer: Video oder Animation", systemImage: "film").foregroundStyle(Palette.text)
+        }
+        .listRowBackground(Palette.raise)
+
         if project?.isMac != true {
             NavigationLink(value: AppsView.Route.chat(projectID: projectID, sessionID: nil, agent: "kenner")) {
                 Label("Frag den Projekt-Kenner", systemImage: "books.vertical").foregroundStyle(Palette.text)

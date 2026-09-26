@@ -97,7 +97,12 @@ struct ChatScreen: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if agent == "kenner" {
+            if agent == "motion-designer" {
+                Text("Was soll sich bewegen?").font(.title3.weight(.semibold))
+                Text("Titel, Logo-Reveal, Promo-Video, App-Store-Vorschau, Social-Clip oder Overlay für DaVinci – beschreib Zweck, Format und Stimmung. Der Motion Designer rendert fertige Videos auf dem Mac und zeigt dir Standbilder.")
+                    .font(.footnote)
+                    .foregroundStyle(Palette.secondary)
+            } else if agent == "kenner" {
                 Text("Was möchtest du über die App wissen?").font(.title3.weight(.semibold))
                 Text("Der Projekt-Kenner kennt Aufbau, Funktionen, Zusammenhänge und warum etwas so gebaut ist. Er ändert nichts.")
                     .font(.footnote)

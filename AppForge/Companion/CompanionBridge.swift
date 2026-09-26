@@ -503,10 +503,17 @@ final class CompanionBridge {
             agent = (try? await client.messages(sessionID: sessionID, directory: projectID))?
                 .last { $0.info.isUser }?.info.agent
         }
+        // „@motion-designer …“ usw. – erwähnte Agenten direkt beauftragen, wie am Mac.
+        let helpers = Set(store.subagents.map(\.name))
+        let mentions = text.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ":" }).compactMap { word -> String? in
+            guard word.hasPrefix("@") else { return nil }
+            let name = String(word.dropFirst())
+            return helpers.contains(name) ? name : nil
+        }
         let isMac = projectID == Self.macWorkspace
         let system = isMac ? Self.phoneHint : store.platform.systemHint + "\n\n" + Self.phoneHint
         try await client.prompt(
-            sessionID: session, directory: projectID, text: text,
+            sessionID: session, directory: projectID, text: text, mentions: mentions,
             model: store.selectedModel, agent: agent ?? "build", system: system
         )
         let target = LiveTarget.session(projectID: projectID, sessionID: session)
